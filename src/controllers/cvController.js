@@ -176,6 +176,39 @@ class CVController {
       next(error);
     }
   }
+
+  /**
+   * Get all CV IDs
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  async getAllCVIds(req, res, next) {
+    try {
+      // Get only the _id field from all CV documents
+      const cvIds = await CVData.find().select('_id').lean();
+      
+      // Extract just the id values
+      const ids = cvIds.map(cv => cv._id);
+      
+      logger.info('CV IDs retrieved successfully', { count: ids.length });
+      
+      // Return the IDs
+      res.status(200).json({
+        success: true,
+        message: 'CV IDs retrieved successfully',
+        data: {
+          count: ids.length,
+          ids
+        }
+      });
+    } catch (error) {
+      logger.error('Error retrieving CV IDs', { 
+        error: error.message 
+      });
+      next(error);
+    }
+  }
 }
 
 module.exports = new CVController();

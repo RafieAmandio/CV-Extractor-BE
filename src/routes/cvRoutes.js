@@ -23,6 +23,13 @@ router.post('/extract', upload.single('cv'), cvController.extractCV);
 router.get('/', cvController.getAllCVs);
 
 /**
+ * @route GET /api/cv/ids
+ * @desc Get all CV IDs
+ * @access Public
+ */
+router.get('/ids', cvController.getAllCVIds);
+
+/**
  * @route GET /api/cv/:id
  * @desc Get a specific CV by ID
  * @access Public
