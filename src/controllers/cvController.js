@@ -148,8 +148,8 @@ class CVController {
     try {
       const { id } = req.params;
       
-      // Find CV by ID
-      const cv = await CVData.findById(id);
+      // Find CV by ID, excluding the rawText field
+      const cv = await CVData.findById(id).select('-rawText');
       
       // Check if CV exists
       if (!cv) {
