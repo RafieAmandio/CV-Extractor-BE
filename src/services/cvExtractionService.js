@@ -2,6 +2,7 @@ const pdfService = require('./pdfService');
 const openaiService = require('./openaiService');
 const CVData = require('../models/cvData.model');
 const logger = require('../utils/logger');
+const fs = require('fs');
 
 class CVExtractionService {
   /**
@@ -9,6 +10,7 @@ class CVExtractionService {
    * 1. Extract text from PDF
    * 2. Extract structured data using OpenAI
    * 3. Save to database
+   * 4. Delete the file to save storage space
    * 
    * @param {string} filePath - Path to the CV file
    * @param {string} originalFilename - Original filename
@@ -36,6 +38,18 @@ class CVExtractionService {
       
       await cvData.save();
       
+      // Step 4: Delete the file to save storage space
+      try {
+        await fs.promises.unlink(filePath);
+        logger.info('CV file deleted successfully', { filePath });
+      } catch (deleteError) {
+        logger.warn('Failed to delete CV file', { 
+          filePath, 
+          error: deleteError.message 
+        });
+        // We don't throw here to not fail the whole process if deletion fails
+      }
+      
       logger.info('CV processing completed successfully', { 
         id: cvData._id,
         filename: originalFilename
@@ -43,6 +57,19 @@ class CVExtractionService {
       
       return cvData;
     } catch (error) {
+      // Try to delete the file even if processing failed
+      try {
+        if (fs.existsSync(filePath)) {
+          await fs.promises.unlink(filePath);
+          logger.info('CV file deleted after processing error', { filePath });
+        }
+      } catch (deleteError) {
+        logger.warn('Failed to delete CV file after error', { 
+          filePath, 
+          error: deleteError.message 
+        });
+      }
+      
       logger.error('CV processing failed', { 
         filePath,
         filename: originalFilename,

@@ -3,6 +3,7 @@ const router = express.Router();
 const cvController = require('../controllers/cvController');
 const upload = require('../middleware/upload');
 const logger = require('../utils/logger');
+const fs = require('fs');
 
 /**
  * @route POST /api/cv/extract
@@ -75,7 +76,8 @@ router.post('/test-upload', (req, res) => {
       });
     }
 
-    res.status(200).json({
+    // Prepare response with file info
+    const responseData = {
       success: true,
       message: 'File uploaded successfully',
       file: {
@@ -84,7 +86,23 @@ router.post('/test-upload', (req, res) => {
         mimetype: req.file.mimetype,
         size: req.file.size
       }
-    });
+    };
+
+    // Send response
+    res.status(200).json(responseData);
+
+    // Delete the file after sending the response
+    try {
+      fs.unlinkSync(req.file.path);
+      logger.info('Test upload file deleted successfully', { 
+        path: req.file.path 
+      });
+    } catch (deleteError) {
+      logger.warn('Failed to delete test upload file', { 
+        path: req.file.path, 
+        error: deleteError.message 
+      });
+    }
   });
 });
 
