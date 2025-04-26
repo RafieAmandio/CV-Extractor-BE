@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-form, .cv-list {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .response {
+            background-color: #f7f7f7;
+            padding: 15px;
+            border-radius: 5px;
+            min-height: 50px;
+            white-space: pre-wrap;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input[type="file"], input[type="text"] {
+            margin: 10px 0;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        .pagination {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .pagination button {
+            background-color: #007bff;
+        }
+        .pagination button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .cv-card {
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-bar input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CV Upload Test Page</h1>
+    
+    <div class="upload-form">
+        <h2>Test Regular Upload</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div>
+                <label for="cvFile">Select PDF file:</label>
+                <input type="file" id="cvFile" name="cv" accept=".pdf">
+            </div>
+            <button type="submit">Upload CV</button>
+        </form>
+        <h3>Response:</h3>
+        <div id="response" class="response">Response will appear here</div>
+    </div>
+
+    <div class="upload-form">
+        <h2>Test Debug Endpoint</h2>
+        <form id="testUploadForm" enctype="multipart/form-data">
+            <div>
+                <label for="testCvFile">Select PDF file:</label>
+                <input type="file" id="testCvFile" name="cv" accept=".pdf">
+            </div>
+            <button type="submit">Test Upload</button>
+        </form>
+        <h3>Response:</h3>
+        <div id="testResponse" class="response">Response will appear here</div>
+    </div>
+
+    <div class="cv-list">
+        <h2>CV List</h2>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Search CVs...">
+            <button id="searchButton">Search</button>
+        </div>
+        <div id="cvListContainer"></div>
+        <div class="pagination">
+            <button id="prevPage" disabled>Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button id="nextPage">Next</button>
+        </div>
+    </div>
+
+    <script>
+        // Handle regular upload form
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = 'Uploading...';
+            
+            try {
+                const formData = new FormData();
+                const fileInput = document.getElementById('cvFile');
+                if (fileInput.files.length === 0) {
+                    responseDiv.textContent = 'Please select a file first';
+                    return;
+                }
+
+                // Add file to form data
+                formData.append('cv', fileInput.files[0]);
+                
+                // Show what's being sent
+                responseDiv.textContent = `Sending file: ${fileInput.files[0].name} (${fileInput.files[0].type}, ${fileInput.files[0].size} bytes)`;
+
+                // Make the fetch request
+                const response = await fetch('/api/cv/extract', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+                responseDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // Refresh CV list if upload was successful
+                if (result.success) {
+                    loadCVs(1);
+                }
+            } catch (error) {
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Handle test upload form
+        document.getElementById('testUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const responseDiv = document.getElementById('testResponse');
+            responseDiv.textContent = 'Testing upload...';
+            
+            try {
+                const formData = new FormData();
+                const fileInput = document.getElementById('testCvFile');
+                if (fileInput.files.length === 0) {
+                    responseDiv.textContent = 'Please select a file first';
+                    return;
+                }
+
+                // Add file to form data
+                formData.append('cv', fileInput.files[0]);
+                
+                // Show what's being sent
+                responseDiv.textContent = `Sending file: ${fileInput.files[0].name} (${fileInput.files[0].type}, ${fileInput.files[0].size} bytes)`;
+
+                // Make the fetch request
+                const response = await fetch('/api/cv/test-upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+                responseDiv.textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // CV list pagination variables
+        let currentPage = 1;
+        let searchTerm = '';
+
+        // Load CVs with pagination
+        async function loadCVs(page, search = '') {
+            const container = document.getElementById('cvListContainer');
+            container.innerHTML = 'Loading...';
+            
+            try {
+                let url = `/api/cv?page=${page}&limit=5`;
+                if (search) {
+                    url += `&search=${encodeURIComponent(search)}`;
+                }
+                
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (!result.success) {
+                    container.innerHTML = `<div>Error: ${result.error || 'Failed to load CVs'}</div>`;
+                    return;
+                }
+                
+                // Update pagination buttons and info
+                const { pagination, cvs } = result.data;
+                document.getElementById('prevPage').disabled = !pagination.hasPrev;
+                document.getElementById('nextPage').disabled = !pagination.hasNext;
+                document.getElementById('pageInfo').textContent = `Page ${pagination.page} of ${pagination.totalPages || 1}`;
+                
+                // Update current page
+                currentPage = pagination.page;
+                
+                // Display CVs
+                if (cvs.length === 0) {
+                    container.innerHTML = '<div>No CVs found</div>';
+                    return;
+                }
+                
+                const cvsHTML = cvs.map(cv => {
+                    const name = cv.personalInfo?.name || 'Unnamed';
+                    const email = cv.personalInfo?.email || 'No email';
+                    const fileName = cv.fileName || 'No filename';
+                    const date = new Date(cv.extractedAt).toLocaleDateString();
+                    
+                    return `
+                        <div class="cv-card">
+                            <h3>${name}</h3>
+                            <p><strong>Email:</strong> ${email}</p>
+                            <p><strong>File:</strong> ${fileName}</p>
+                            <p><strong>Date:</strong> ${date}</p>
+                            <button onclick="viewCV('${cv._id}')">View Details</button>
+                        </div>
+                    `;
+                }).join('');
+                
+                container.innerHTML = cvsHTML;
+            } catch (error) {
+                container.innerHTML = `<div>Error: ${error.message}</div>`;
+            }
+        }
+
+        // View CV details
+        async function viewCV(id) {
+            const container = document.getElementById('cvListContainer');
+            container.innerHTML = 'Loading CV details...';
+            
+            try {
+                const response = await fetch(`/api/cv/${id}`);
+                const result = await response.json();
+                
+                if (!result.success) {
+                    container.innerHTML = `<div>Error: ${result.error || 'Failed to load CV'}</div>`;
+                    return;
+                }
+                
+                const cv = result.data;
+                const detailsHTML = `
+                    <div class="cv-card">
+                        <h3>${cv.personalInfo?.name || 'Unnamed'}</h3>
+                        <button onclick="loadCVs(${currentPage}, '${searchTerm}')">Back to List</button>
+                        <hr>
+                        <h4>Personal Information</h4>
+                        <p><strong>Email:</strong> ${cv.personalInfo?.email || 'Not provided'}</p>
+                        <p><strong>Phone:</strong> ${cv.personalInfo?.phone || 'Not provided'}</p>
+                        <p><strong>Location:</strong> ${cv.personalInfo?.location || 'Not provided'}</p>
+                        <p><strong>LinkedIn:</strong> ${cv.personalInfo?.linkedin || 'Not provided'}</p>
+                        <p><strong>Website:</strong> ${cv.personalInfo?.website || 'Not provided'}</p>
+                        
+                        ${cv.personalInfo?.summary ? `
+                            <h4>Summary</h4>
+                            <p>${cv.personalInfo.summary}</p>
+                        ` : ''}
+                        
+                        ${cv.education?.length ? `
+                            <h4>Education</h4>
+                            ${cv.education.map(edu => `
+                                <div>
+                                    <p><strong>${edu.institution || 'Unknown Institution'}</strong></p>
+                                    <p>${edu.degree || ''} ${edu.field ? 'in ' + edu.field : ''}</p>
+                                    <p>${edu.startDate || ''} ${edu.endDate ? ' - ' + edu.endDate : ''}</p>
+                                    ${edu.gpa ? `<p>GPA: ${edu.gpa}</p>` : ''}
+                                    ${edu.description ? `<p>${edu.description}</p>` : ''}
+                                </div>
+                            `).join('<hr>')}
+                        ` : ''}
+                        
+                        ${cv.experience?.length ? `
+                            <h4>Experience</h4>
+                            ${cv.experience.map(exp => `
+                                <div>
+                                    <p><strong>${exp.position || 'Position'}</strong> at ${exp.company || 'Company'}</p>
+                                    <p>${exp.startDate || ''} ${exp.endDate ? ' - ' + exp.endDate : ''}</p>
+                                    ${exp.location ? `<p>Location: ${exp.location}</p>` : ''}
+                                    ${exp.description ? `<p>${exp.description}</p>` : ''}
+                                    ${exp.achievements?.length ? `
+                                        <p><strong>Achievements:</strong></p>
+                                        <ul>
+                                            ${exp.achievements.map(a => `<li>${a}</li>`).join('')}
+                                        </ul>
+                                    ` : ''}
+                                </div>
+                            `).join('<hr>')}
+                        ` : ''}
+                        
+                        ${cv.skills?.length ? `
+                            <h4>Skills</h4>
+                            ${cv.skills.map(skill => `
+                                <div>
+                                    <p><strong>${skill.category || 'Miscellaneous'}:</strong> ${skill.skills?.join(', ') || 'None listed'}</p>
+                                </div>
+                            `).join('')}
+                        ` : ''}
+                        
+                        <p><strong>File:</strong> ${cv.fileName || 'No filename'}</p>
+                        <p><strong>Extracted:</strong> ${new Date(cv.extractedAt).toLocaleString()}</p>
+                    </div>
+                `;
+                
+                container.innerHTML = detailsHTML;
+            } catch (error) {
+                container.innerHTML = `<div>Error: ${error.message}</div>`;
+            }
+        }
+
+        // Event listeners for pagination
+        document.getElementById('prevPage').addEventListener('click', () => {
+            loadCVs(currentPage - 1, searchTerm);
+        });
+        
+        document.getElementById('nextPage').addEventListener('click', () => {
+            loadCVs(currentPage + 1, searchTerm);
+        });
+        
+        // Event listener for search
+        document.getElementById('searchButton').addEventListener('click', () => {
+            searchTerm = document.getElementById('searchInput').value.trim();
+            loadCVs(1, searchTerm);
+        });
+        
+        // Also trigger search on Enter key
+        document.getElementById('searchInput').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                searchTerm = e.target.value.trim();
+                loadCVs(1, searchTerm);
+            }
+        });
+        
+        // Load CVs when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCVs(1);
+        });
+    </script>
+</body>
+</html> 
