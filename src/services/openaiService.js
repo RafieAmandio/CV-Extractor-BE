@@ -15,6 +15,7 @@ class OpenAIService {
    * @param {string} text - CV text content
    * @returns {Promise<Object>} - Structured CV data
    */
+
   async extractCVData(text) {
     try {
       logger.info('Starting CV data extraction with OpenAI');
@@ -122,6 +123,7 @@ class OpenAIService {
             Ensure that dates are formatted as strings in YYYY-MM-DD format when possible,
             but preserve the original format if exact dates cannot be determined.
             For ongoing positions or education, use "Present" for the endDate.
+
             `
           },
           {
@@ -129,7 +131,7 @@ class OpenAIService {
             content: text
           }
         ],
-        temperature: 0.2,
+        temperature: 0.1,
         response_format: { type: "json_object" }
       });
       

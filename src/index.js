@@ -9,12 +9,17 @@ const logger = require('./utils/logger');
 const config = require('./config/default');
 const fs = require('fs');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables with explicit path
+const envPath = path.resolve(process.cwd(), '.env');
+dotenv.config({ path: envPath });
+
+// Log environment loading status
+logger.info('Loading environment variables from:', envPath);
+logger.info('Current environment:', process.env.NODE_ENV);
 
 // Initialize Express app
 const app = express();
-const port = config.port;
+const port = process.env.PORT || 3000;
 
 // CORS configuration
 const corsOptions = {
@@ -60,6 +65,8 @@ const startServer = async () => {
     // Start listening
     app.listen(port, () => {
       logger.info(`Server running on port ${port}`);
+      logger.info(`MongoDB URI: ${process.env.MONGODB_URI}`);
+      logger.info(`Environment: ${process.env.NODE_ENV}`);
     });
   } catch (error) {
     logger.error('Failed to start server', { error });
