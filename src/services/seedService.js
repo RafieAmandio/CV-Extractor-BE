@@ -30,7 +30,11 @@ class SeedService {
           'Collaborate with backend developers for RESTful API integration'
         ],
         location: 'San Francisco, CA (Remote available)',
-        salary: '$90,000 - $120,000',
+        salary: {
+          min: 90000,
+          max: 120000,
+          currency: 'USD'
+        },
         jobType: 'Full-time',
         industry: 'Technology',
         experienceLevel: 'Mid-level',
@@ -58,7 +62,11 @@ class SeedService {
           'Deploy and monitor applications in cloud environments'
         ],
         location: 'Austin, TX',
-        salary: '$95,000 - $130,000',
+        salary: {
+          min: 95000,
+          max: 130000,
+          currency: 'USD'
+        },
         jobType: 'Full-time',
         industry: 'Technology',
         experienceLevel: 'Mid-level',
@@ -86,7 +94,11 @@ class SeedService {
           'Collaborate with team members on code reviews and architecture decisions'
         ],
         location: 'Remote',
-        salary: '$100,000 - $140,000',
+        salary: {
+          min: 100000,
+          max: 140000,
+          currency: 'USD'
+        },
         jobType: 'Full-time',
         industry: 'Technology',
         experienceLevel: 'Mid-level',
@@ -114,7 +126,11 @@ class SeedService {
           'Stay current with latest research and techniques'
         ],
         location: 'Boston, MA',
-        salary: '$110,000 - $150,000',
+        salary: {
+          min: 110000,
+          max: 150000,
+          currency: 'USD'
+        },
         jobType: 'Full-time',
         industry: 'Data Science',
         experienceLevel: 'Senior',
@@ -142,7 +158,11 @@ class SeedService {
           'Stay current with latest design trends and best practices'
         ],
         location: 'New York, NY',
-        salary: '$85,000 - $115,000',
+        salary: {
+          min: 85000,
+          max: 115000,
+          currency: 'USD'
+        },
         jobType: 'Full-time',
         industry: 'Design',
         experienceLevel: 'Mid-level',

@@ -78,10 +78,10 @@ curl -X POST "http://localhost:3000/api/jobs" \
       "max": 120000,
       "currency": "USD"
     },
-    "employmentType": "Full-time",
-    "remote": true,
-    "postingDate": "2025-04-01",
-    "applicationDeadline": "2025-05-15"
+    "jobType": "Full-time",
+    "experienceLevel": "Mid-level",
+    "educationLevel": "Bachelor",
+    "industry": "Technology"
   }'
 ```
 
@@ -122,10 +122,10 @@ curl -X PUT "http://localhost:3000/api/jobs/your_job_id_here" \
       "max": 150000,
       "currency": "USD"
     },
-    "employmentType": "Full-time",
-    "remote": true,
-    "postingDate": "2025-04-01",
-    "applicationDeadline": "2025-05-30"
+    "jobType": "Full-time",
+    "experienceLevel": "Senior",
+    "educationLevel": "Bachelor",
+    "industry": "Technology"
   }'
 ```
 

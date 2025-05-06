@@ -237,7 +237,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"Software Engineer\",\n  \"company\": \"Tech Corp\",\n  \"location\": \"Remote\",\n  \"description\": \"We are looking for a Software Engineer to join our team.\",\n  \"requirements\": [\n    \"Bachelor's degree in Computer Science or related field\",\n    \"3+ years of experience in software development\"\n  ],\n  \"skills\": [\n    \"JavaScript\",\n    \"React\",\n    \"Node.js\"\n  ],\n  \"salary\": {\n    \"min\": 80000,\n    \"max\": 120000,\n    \"currency\": \"USD\"\n  },\n  \"employmentType\": \"Full-time\",\n  \"remote\": true,\n  \"postingDate\": \"2025-04-01\",\n  \"applicationDeadline\": \"2025-05-15\"\n}"
+							"raw": "{\n  \"title\": \"Software Engineer\",\n  \"company\": \"Tech Corp\",\n  \"location\": \"Remote\",\n  \"description\": \"We are looking for a Software Engineer to join our team.\",\n  \"requirements\": [\n    \"Bachelor's degree in Computer Science or related field\",\n    \"3+ years of experience in software development\"\n  ],\n  \"skills\": [\n    \"JavaScript\",\n    \"React\",\n    \"Node.js\"\n  ],\n  \"salary\": {\n    \"min\": 80000,\n    \"max\": 120000,\n    \"currency\": \"USD\"\n  },\n  \"jobType\": \"Full-time\",\n  \"experienceLevel\": \"Mid-level\",\n  \"educationLevel\": \"Bachelor\",\n  \"industry\": \"Technology\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/jobs",
@@ -328,7 +328,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"Senior Software Engineer\",\n  \"company\": \"Tech Corp\",\n  \"location\": \"Remote\",\n  \"description\": \"Updated description for the job.\",\n  \"requirements\": [\n    \"Bachelor's degree in Computer Science or related field\",\n    \"5+ years of experience in software development\"\n  ],\n  \"skills\": [\n    \"JavaScript\",\n    \"React\",\n    \"Node.js\",\n    \"TypeScript\"\n  ],\n  \"salary\": {\n    \"min\": 100000,\n    \"max\": 150000,\n    \"currency\": \"USD\"\n  },\n  \"employmentType\": \"Full-time\",\n  \"remote\": true,\n  \"postingDate\": \"2025-04-01\",\n  \"applicationDeadline\": \"2025-05-30\"\n}"
+							"raw": "{\n  \"title\": \"Senior Software Engineer\",\n  \"company\": \"Tech Corp\",\n  \"location\": \"Remote\",\n  \"description\": \"Updated description for the job.\",\n  \"requirements\": [\n    \"Bachelor's degree in Computer Science or related field\",\n    \"5+ years of experience in software development\"\n  ],\n  \"skills\": [\n    \"JavaScript\",\n    \"React\",\n    \"Node.js\",\n    \"TypeScript\"\n  ],\n  \"salary\": {\n    \"min\": 100000,\n    \"max\": 150000,\n    \"currency\": \"USD\"\n  },\n  \"jobType\": \"Full-time\",\n  \"experienceLevel\": \"Senior\",\n  \"educationLevel\": \"Bachelor\",\n  \"industry\": \"Technology\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/jobs/:id",
