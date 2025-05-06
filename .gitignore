@@ -42,6 +42,8 @@ coverage/
 # Optional npm cache directory
 .npm
 
+.cursorrules
+
 # Optional eslint cache
 .eslintcache
 

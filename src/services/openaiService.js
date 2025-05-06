@@ -183,8 +183,46 @@ class OpenAIService {
             role: "user",
             content: `Evaluate how well this candidate matches the job description. Return a JSON object with:
                       - score: numeric score between 0-100
-                      - details: object containing analysis for each factor (skills, experience, education, overall)
-                      - recommendations: what could make this candidate a better match
+                      - details: object containing analysis for each factor with EXACT keys:
+                        * skills: { score: Number, analysis: String }
+                        * experience: { score: Number, analysis: String }
+                        * education: { score: Number, analysis: String }
+                        * overall: { score: Number, analysis: String }
+                      - recommendations: an object with recommendations for improvement (NOT an array)
+                      
+                      IMPORTANT: Use EXACTLY the structure above for the details object.
+                      The "score" field in each section MUST be called "score", not "match" or "relevance" or any other term.
+                      
+                      Format the recommendations as a single object with keys like 'skills', 'experience', 'education'.
+                      
+                      Here's an example of a valid response format:
+                      
+                      {
+                        "score": 75,
+                        "details": {
+                          "skills": {
+                            "score": 70,
+                            "analysis": "The candidate has 7 out of 10 required skills, including JavaScript, React, and Git. However, they lack experience with Docker, AWS, and GraphQL."
+                          },
+                          "experience": {
+                            "score": 80,
+                            "analysis": "The candidate has 4 years of relevant experience in web development roles, which aligns well with the position's requirements."
+                          },
+                          "education": {
+                            "score": 90,
+                            "analysis": "The candidate has a Bachelor's degree in Computer Science, which meets the educational requirements for this position."
+                          },
+                          "overall": {
+                            "score": 75,
+                            "analysis": "Overall, the candidate is a good match for the position with strong education and experience, but would benefit from developing a few additional technical skills."
+                          }
+                        },
+                        "recommendations": {
+                          "skills": "Develop experience with Docker, AWS, and GraphQL to fully meet the technical requirements.",
+                          "experience": "Seek opportunities to lead projects to strengthen leadership capabilities.",
+                          "education": "Consider obtaining AWS certification to complement existing qualifications."
+                        }
+                      }
                       
                       CV Information:
                       ${JSON.stringify(cv, null, 2)}
@@ -201,6 +239,29 @@ class OpenAIService {
       
       // Parse JSON response
       const matchResult = JSON.parse(responseContent);
+      
+      // Normalize response structure to ensure consistency
+      const normalizedDetails = {
+        skills: {
+          score: matchResult.details?.skills?.score || matchResult.details?.skills?.match || 0,
+          analysis: matchResult.details?.skills?.analysis || ''
+        },
+        experience: {
+          score: matchResult.details?.experience?.score || matchResult.details?.experience?.relevance || 0,
+          analysis: matchResult.details?.experience?.analysis || ''
+        },
+        education: {
+          score: matchResult.details?.education?.score || matchResult.details?.education?.alignment || 0,
+          analysis: matchResult.details?.education?.analysis || ''
+        },
+        overall: {
+          score: matchResult.details?.overall?.score || matchResult.details?.overall?.fit || 0,
+          analysis: matchResult.details?.overall?.analysis || ''
+        }
+      };
+      
+      // Update the match result with normalized details
+      matchResult.details = normalizedDetails;
       
       logger.info('Job match calculation completed', { score: matchResult.score });
       

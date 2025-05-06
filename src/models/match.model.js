@@ -35,7 +35,10 @@ const MatchSchema = new mongoose.Schema({
       analysis: String
     }
   },
-  recommendations: [String],
+  recommendations: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   // Invalidate cache when CV or job is updated
   cvVersion: {
     type: Date, // Using the CV updatedAt timestamp
