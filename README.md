@@ -43,7 +43,7 @@ cv-data-extractor/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/cv-data-extractor.git
+   git clone https://github.com/RafieAmandio/CV-extractor-BE.git
    cd cv-data-extractor
    ```
 
@@ -52,25 +52,14 @@ cv-data-extractor/
    npm install
    ```
 
-3. Create environment file:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Configure environment variables in `.env`:
+3. Configure environment variables in `.env`:
    ```
    PORT=3000
    MONGODB_URI=mongodb://localhost:27017/cv-extractor
    NODE_ENV=development
    ```
 
-5. Start MongoDB:
-   ```bash
-   # If using MongoDB locally
-   mongod
-   ```
-
-6. Start the backend server:
+4. Start the backend server:
    ```bash
    npm run dev
    ```

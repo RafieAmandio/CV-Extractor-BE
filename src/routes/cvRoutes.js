@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cvController = require('../controllers/cvController');
+const jobController = require('../controllers/jobController');
 const upload = require('../middleware/upload');
 const logger = require('../utils/logger');
 const fs = require('fs');
@@ -36,6 +37,16 @@ router.get('/ids', cvController.getAllCVIds);
  * @param {string} id - The CV document ID
  */
 router.get('/:id', cvController.getCVById);
+
+/**
+ * @route GET /api/cv/:id/jobs
+ * @desc Find best matching jobs for a CV
+ * @access Public
+ * @param {string} id - The CV ID
+ * @query {number} limit - Maximum number of matches to return (default: 10)
+ * @query {boolean} refresh - Whether to force recalculation of all scores (default: false)
+ */
+router.get('/:id/jobs', jobController.findBestJobsForCV);
 
 /**
  * @route POST /api/cv/test-upload

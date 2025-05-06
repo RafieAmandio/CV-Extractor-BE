@@ -1,21 +1,26 @@
-const express = require('express');
-const cors = require('cors');
+// Load environment variables first, before any other imports
 const dotenv = require('dotenv');
 const path = require('path');
-const cvRoutes = require('./routes/cvRoutes');
-const errorHandler = require('./middleware/errorHandler');
-const connectDB = require('./utils/database');
-const logger = require('./utils/logger');
-const config = require('./config/default');
-const fs = require('fs');
 
 // Load environment variables with explicit path
 const envPath = path.resolve(process.cwd(), '.env');
 dotenv.config({ path: envPath });
 
 // Log environment loading status
-logger.info('Loading environment variables from:', envPath);
-logger.info('Current environment:', process.env.NODE_ENV);
+console.log('Loading environment variables from:', envPath);
+console.log('Current environment:', process.env.NODE_ENV);
+console.log('OPENAI_API_KEY present:', !!process.env.OPENAI_API_KEY);
+
+const express = require('express');
+const cors = require('cors');
+const cvRoutes = require('./routes/cvRoutes');
+const jobRoutes = require('./routes/jobRoutes');
+const errorHandler = require('./middleware/errorHandler');
+const connectDB = require('./utils/database');
+const logger = require('./utils/logger');
+const config = require('./config/default');
+const fs = require('fs');
+
 
 // Initialize Express app
 const app = express();
@@ -36,6 +41,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/cv', cvRoutes);
+app.use('/api/jobs', jobRoutes);
 
 // Serve the test HTML at root
 app.get('/', (req, res) => {
