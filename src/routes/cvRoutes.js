@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const cvController = require('../controllers/cvController');
 const jobController = require('../controllers/jobController');
+const chatController = require('../controllers/chatController');
 const upload = require('../middleware/upload');
 const logger = require('../utils/logger');
 const fs = require('fs');
@@ -123,5 +124,26 @@ router.post('/test-upload', (req, res) => {
     }
   });
 });
+
+/**
+ * @route POST /api/cv/chat
+ * @desc Chat with AI about CV data
+ * @access Public
+ * @body {string} message - The user's message
+ * @body {string} [cvId] - Optional CV ID to focus the conversation on
+ */
+router.post('/chat', chatController.chat);
+
+/**
+ * @route GET /api/cv/chat/history
+ * @desc Get chat history with pagination and filters
+ * @access Public
+ * @query {number} page - Page number (default: 1)
+ * @query {number} limit - Number of items per page (default: 20)
+ * @query {string} [cvId] - Optional CV ID to filter by
+ * @query {string} [startDate] - Optional start date (ISO format)
+ * @query {string} [endDate] - Optional end date (ISO format)
+ */
+router.get('/chat/history', chatController.getChatHistory);
 
 module.exports = router;

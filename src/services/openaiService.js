@@ -2,6 +2,8 @@ const { OpenAI } = require('openai');
 const config = require('../config/default');
 const logger = require('../utils/logger');
 const { cvDataSchema } = require('../schemas/cvDataSchema');
+const CVData = require('../models/cvData.model');
+const Match = require('../models/match.model');
 
 class OpenAIService {
   constructor() {
@@ -270,6 +272,208 @@ class OpenAIService {
       logger.error('Job match calculation failed', { error: error.message });
       throw error;
     }
+  }
+
+  /**
+   * Process a chat message using OpenAI with function calling
+   * @param {string} message - The user's message
+   * @param {Object} [cvData] - Optional CV data to focus the conversation on
+   * @returns {Promise<Object>} - AI response
+   */
+  async processChatMessage(message, cvData = null) {
+    try {
+      logger.info('Processing chat message', {
+        messageLength: message.length,
+        hasCvData: !!cvData
+      });
+
+      const functions = [
+        {
+          name: 'searchCVs',
+          description: 'Search for CVs based on specific criteria',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'Search query to find matching CVs'
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of results to return',
+                default: 10
+              }
+            },
+            required: ['query']
+          }
+        },
+        {
+          name: 'getCVDetails',
+          description: 'Get detailed information about a specific CV',
+          parameters: {
+            type: 'object',
+            properties: {
+              cvId: {
+                type: 'string',
+                description: 'ID of the CV to retrieve'
+              }
+            },
+            required: ['cvId']
+          }
+        },
+        {
+          name: 'getJobMatches',
+          description: 'Get job matches for a specific CV',
+          parameters: {
+            type: 'object',
+            properties: {
+              cvId: {
+                type: 'string',
+                description: 'ID of the CV to find matches for'
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of matches to return',
+                default: 10
+              }
+            },
+            required: ['cvId']
+          }
+        }
+      ];
+
+      const messages = [
+        {
+          role: 'system',
+          content: `You are an AI assistant that helps users analyze CV data and find job matches.
+                    You have access to the following functions:
+                    - searchCVs: Search for CVs based on specific criteria
+                    - getCVDetails: Get detailed information about a specific CV
+                    - getJobMatches: Get job matches for a specific CV
+                    
+                    Use these functions to help users find relevant information and make informed decisions.
+                    Always provide clear, concise responses and explain your reasoning.`
+        }
+      ];
+
+      // Add CV data to context if provided
+      if (cvData) {
+        messages.push({
+          role: 'system',
+          content: `Current CV context:\n${JSON.stringify(cvData, null, 2)}`
+        });
+      }
+
+      messages.push({
+        role: 'user',
+        content: message
+      });
+
+      const completion = await this.client.chat.completions.create({
+        model: 'gpt-4o',
+        messages,
+        functions,
+        function_call: 'auto'
+      });
+
+      const response = completion.choices[0].message;
+
+      // Handle function calls
+      if (response.function_call) {
+        const functionName = response.function_call.name;
+        const functionArgs = JSON.parse(response.function_call.arguments);
+
+        let functionResult;
+        switch (functionName) {
+          case 'searchCVs':
+            functionResult = await this.searchCVs(functionArgs.query, functionArgs.limit);
+            break;
+          case 'getCVDetails':
+            functionResult = await this.getCVDetails(functionArgs.cvId);
+            break;
+          case 'getJobMatches':
+            functionResult = await this.getJobMatches(functionArgs.cvId, functionArgs.limit);
+            break;
+          default:
+            throw new Error(`Unknown function: ${functionName}`);
+        }
+
+        // Add function result to messages and get final response
+        messages.push(response);
+        messages.push({
+          role: 'function',
+          name: functionName,
+          content: JSON.stringify(functionResult)
+        });
+
+        const finalCompletion = await this.client.chat.completions.create({
+          model: 'gpt-4o',
+          messages
+        });
+
+        return {
+          response: finalCompletion.choices[0].message.content,
+          functionResult
+        };
+      }
+
+      return {
+        response: response.content
+      };
+    } catch (error) {
+      logger.error('Chat message processing failed', {
+        error: error.message
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Search for CVs based on criteria
+   * @param {string} query - Search query
+   * @param {number} limit - Maximum number of results
+   * @returns {Promise<Array>} - Matching CVs
+   */
+  async searchCVs(query, limit = 10) {
+    const cvs = await CVData.find({
+      $or: [
+        { 'personalInfo.name': { $regex: query, $options: 'i' } },
+        { 'personalInfo.email': { $regex: query, $options: 'i' } },
+        { 'skills.skills': { $regex: query, $options: 'i' } }
+      ]
+    })
+    .select('-rawText')
+    .limit(limit);
+
+    return cvs;
+  }
+
+  /**
+   * Get detailed information about a CV
+   * @param {string} cvId - CV ID
+   * @returns {Promise<Object>} - CV details
+   */
+  async getCVDetails(cvId) {
+    const cv = await CVData.findById(cvId).select('-rawText');
+    if (!cv) {
+      throw new Error('CV not found');
+    }
+    return cv;
+  }
+
+  /**
+   * Get job matches for a CV
+   * @param {string} cvId - CV ID
+   * @param {number} limit - Maximum number of matches
+   * @returns {Promise<Array>} - Job matches
+   */
+  async getJobMatches(cvId, limit = 10) {
+    const matches = await Match.find({ cvId })
+      .sort({ score: -1 })
+      .limit(limit)
+      .populate('jobId');
+
+    return matches;
   }
 }
 
