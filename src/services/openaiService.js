@@ -613,43 +613,28 @@ Remember to:
       const queryEmbedding = await this.getEmbeddings(query);
       logger.info('Generated query embedding');
 
-      // Perform vector search using MongoDB's $vectorSearch
-      const searchResults = await CVData.aggregate([
-        {
-          $vectorSearch: {
-            index: "cv_embeddings",
-            path: "embedding",
-            queryVector: queryEmbedding,
-            numCandidates: 100,
-            limit: limit
-          }
-        },
-        {
-          $project: {
-            _id: 1,
-            fileName: 1,
-            personalInfo: 1,
-            education: 1,
-            experience: 1,
-            skills: 1,
-            certifications: 1,
-            languages: 1,
-            projects: 1,
-            publications: 1,
-            awards: 1,
-            references: 1,
-            score: { $meta: "vectorSearchScore" }
-          }
-        }
-      ]);
+      // Get all CVs with embeddings
+      const cvs = await CVData.find({ embedding: { $exists: true } });
+
+      // Calculate similarity scores
+      const scoredCVs = cvs.map(cv => ({
+        cv,
+        score: this.calculateCosineSimilarity(queryEmbedding, cv.embedding)
+      }));
+
+      // Sort by similarity score and get top results
+      const results = scoredCVs
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(({ cv, score }) => ({
+          ...cv.toObject(),
+          score
+        }));
 
       logger.info('Vector search completed', { 
-        resultsCount: searchResults.length,
-        averageScore: searchResults.reduce((sum, r) => sum + r.score, 0) / searchResults.length
+        resultsCount: results.length,
+        averageScore: results.reduce((sum, r) => sum + r.score, 0) / results.length
       });
-
-      // Remove score from final results
-      const results = searchResults.map(({ score, ...cv }) => cv);
 
       return results;
     } catch (error) {

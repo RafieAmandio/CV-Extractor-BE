@@ -87,16 +87,13 @@ const CVDataSchema = new mongoose.Schema({
   rawText: String,
   embedding: {
     type: [Number],
-    index: true,
-    sparse: true
+    index: true
   },
   searchableText: {
     type: String,
     index: true
   }
 });
-
-CVDataSchema.index({ embedding: '2dsphere' });
 
 CVDataSchema.methods.generateSearchableText = function() {
   const parts = [
