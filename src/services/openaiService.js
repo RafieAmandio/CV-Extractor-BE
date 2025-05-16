@@ -455,7 +455,6 @@ Remember to:
         }
       ];
 
-      // Add CV data to context if provided
       if (cvData) {
         messages.push({
           role: 'system',
@@ -482,20 +481,50 @@ Remember to:
         const functionName = response.function_call.name;
         const functionArgs = JSON.parse(response.function_call.arguments);
 
+        // Log the function call and its parameters
+        logger.info('AI Tool Call', {
+          function: functionName,
+          parameters: functionArgs,
+          userMessage: message
+        });
+
         let functionResult;
         switch (functionName) {
           case 'searchCVs':
             functionResult = await this.searchCVs(functionArgs.query, functionArgs.limit);
+            logger.info('Search CVs Result', {
+              query: functionArgs.query,
+              limit: functionArgs.limit,
+              resultsCount: functionResult.length
+            });
             break;
           case 'getCVDetails':
             functionResult = await this.getCVDetails(functionArgs.cvId);
+            logger.info('Get CV Details Result', {
+              cvId: functionArgs.cvId,
+              hasResult: !!functionResult
+            });
             break;
           case 'getJobMatches':
             functionResult = await this.getJobMatches(functionArgs.cvId, functionArgs.limit);
+            logger.info('Get Job Matches Result', {
+              cvId: functionArgs.cvId,
+              limit: functionArgs.limit,
+              matchesCount: functionResult.length
+            });
             break;
           default:
+            logger.error('Unknown function called', { functionName });
             throw new Error(`Unknown function: ${functionName}`);
         }
+
+        // Log the function result
+        logger.info('Function Result', {
+          function: functionName,
+          resultSize: JSON.stringify(functionResult).length,
+          resultType: Array.isArray(functionResult) ? 'array' : 'object',
+          resultCount: Array.isArray(functionResult) ? functionResult.length : 1
+        });
 
         // Add function result to messages and get final response
         messages.push(response);
@@ -510,18 +539,30 @@ Remember to:
           messages
         });
 
+        // Log the final response
+        logger.info('Final AI Response', {
+          function: functionName,
+          responseLength: finalCompletion.choices[0].message.content.length
+        });
+
         return {
           response: finalCompletion.choices[0].message.content,
           functionResult
         };
       }
 
+      // Log direct response (no function call)
+      logger.info('Direct AI Response', {
+        responseLength: response.content.length
+      });
+
       return {
         response: response.content
       };
     } catch (error) {
       logger.error('Chat message processing failed', {
-        error: error.message
+        error: error.message,
+        stack: error.stack
       });
       throw error;
     }
