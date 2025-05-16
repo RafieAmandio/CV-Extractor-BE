@@ -35,11 +35,19 @@ class ChatController {
         }
       }
 
-      // Process the chat message
-      const response = await openaiService.processChatMessage(message, cvData);
+      // Get recent chat history
+      const chatHistory = await ChatHistory.find({
+        ...(cvId ? { cvId } : {}),
+      })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+
+      // Process the chat message with history
+      const response = await openaiService.processChatMessage(message, cvData, chatHistory);
 
       // Store chat history
-      const chatHistory = new ChatHistory({
+      const chatHistoryEntry = new ChatHistory({
         message,
         response: response.response,
         cvId: cvId || null,
@@ -50,12 +58,13 @@ class ChatController {
         }] : []
       });
 
-      await chatHistory.save();
+      await chatHistoryEntry.save();
 
       logger.info('Chat message processed and stored successfully', {
         messageLength: message.length,
         hasCvData: !!cvData,
-        historyId: chatHistory._id
+        historyId: chatHistoryEntry._id,
+        historyLength: chatHistory.length
       });
 
       res.status(200).json({

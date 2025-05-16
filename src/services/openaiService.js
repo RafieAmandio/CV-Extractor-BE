@@ -278,13 +278,15 @@ class OpenAIService {
    * Process a chat message using OpenAI with function calling
    * @param {string} message - The user's message
    * @param {Object} [cvData] - Optional CV data to focus the conversation on
+   * @param {Array} [chatHistory] - Optional array of previous chat messages
    * @returns {Promise<Object>} - AI response
    */
-  async processChatMessage(message, cvData = null) {
+  async processChatMessage(message, cvData = null, chatHistory = []) {
     try {
       logger.info('Processing chat message', {
         messageLength: message.length,
-        hasCvData: !!cvData
+        hasCvData: !!cvData,
+        historyLength: chatHistory.length
       });
 
       const functions = [
@@ -352,6 +354,7 @@ ROLE AND CAPABILITIES:
 - You can search through CVs, analyze their details, and find matching jobs
 - You provide clear, concise, and actionable insights
 - You maintain a professional yet friendly tone
+- You maintain context from previous messages in the conversation
 
 AVAILABLE FUNCTIONS:
 1. searchCVs(query, limit)
@@ -441,6 +444,7 @@ BEST PRACTICES:
 - Include relevant metrics when available
 - Keep sections concise but informative
 - Highlight the most relevant information first
+- Maintain conversation context and refer to previous interactions when relevant
 
 Remember to:
 1. Understand the user's intent before making function calls
@@ -451,10 +455,12 @@ Remember to:
 6. Use consistent formatting throughout the response
 7. Prioritize the most relevant information
 8. Include clear section headers
-9. Make it easy to scan and read quickly`
+9. Make it easy to scan and read quickly
+10. Reference previous messages when relevant to maintain conversation flow`
         }
       ];
 
+      // Add CV context if available
       if (cvData) {
         messages.push({
           role: 'system',
@@ -462,6 +468,23 @@ Remember to:
         });
       }
 
+      // Add chat history context
+      if (chatHistory && chatHistory.length > 0) {
+        // Add last 5 messages for context (to avoid token limits)
+        const recentHistory = chatHistory.slice(-5);
+        recentHistory.forEach(chat => {
+          messages.push({
+            role: 'user',
+            content: chat.message
+          });
+          messages.push({
+            role: 'assistant',
+            content: chat.response
+          });
+        });
+      }
+
+      // Add current message
       messages.push({
         role: 'user',
         content: message
