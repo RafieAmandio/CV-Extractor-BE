@@ -84,7 +84,37 @@ const CVDataSchema = new mongoose.Schema({
     contact: String,
     relationship: String
   }],
-  rawText: String
+  rawText: String,
+  embedding: {
+    type: [Number],
+    index: true,
+    sparse: true
+  },
+  searchableText: {
+    type: String,
+    index: true
+  }
+});
+
+CVDataSchema.index({ embedding: '2dsphere' });
+
+CVDataSchema.methods.generateSearchableText = function() {
+  const parts = [
+    this.personalInfo.summary,
+    this.experience.map(exp => `${exp.position} at ${exp.company}: ${exp.description}`).join(' '),
+    this.skills.map(skill => skill.skills.join(' ')).join(' '),
+    this.education.map(edu => `${edu.degree} in ${edu.field} at ${edu.institution}`).join(' '),
+    this.certifications.map(cert => `${cert.name} from ${cert.issuer}`).join(' '),
+    this.projects.map(proj => `${proj.name}: ${proj.description}`).join(' '),
+    this.publications.map(pub => `${pub.title} by ${pub.authors.join(', ')}`).join(' ')
+  ].filter(Boolean);
+
+  return parts.join(' ');
+};
+
+CVDataSchema.pre('save', function(next) {
+  this.searchableText = this.generateSearchableText();
+  next();
 });
 
 module.exports = mongoose.model('CVData', CVDataSchema);

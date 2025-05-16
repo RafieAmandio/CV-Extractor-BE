@@ -9,8 +9,9 @@ class CVExtractionService {
    * Process a CV file through the entire pipeline:
    * 1. Extract text from PDF
    * 2. Extract structured data using OpenAI
-   * 3. Save to database
-   * 4. Delete the file to save storage space
+   * 3. Generate embeddings
+   * 4. Save to database
+   * 5. Delete the file to save storage space
    * 
    * @param {string} filePath - Path to the CV file
    * @param {string} originalFilename - Original filename
@@ -29,16 +30,22 @@ class CVExtractionService {
       // Step 2: Extract structured data using OpenAI
       const structuredData = await openaiService.extractCVData(extractedText);
       
-      // Step 3: Save to database
+      // Step 3: Create CV document
       const cvData = new CVData({
         fileName: originalFilename,
         ...structuredData,
         rawText: extractedText
       });
+
+      // Step 4: Generate embedding
+      const searchableText = cvData.generateSearchableText();
+      const embedding = await openaiService.getEmbeddings(searchableText);
+      cvData.embedding = embedding;
       
+      // Step 5: Save to database
       await cvData.save();
       
-      // Step 4: Delete the file to save storage space
+      // Step 6: Delete the file to save storage space
       try {
         await fs.promises.unlink(filePath);
         logger.info('CV file deleted successfully', { filePath });
@@ -75,6 +82,44 @@ class CVExtractionService {
         filename: originalFilename,
         error: error.message
       });
+      throw error;
+    }
+  }
+
+  /**
+   * Update embeddings for all CVs that don't have them
+   * @returns {Promise<void>}
+   */
+  async updateAllEmbeddings() {
+    try {
+      logger.info('Starting embedding update for all CVs');
+      
+      const cvs = await CVData.find({ embedding: { $exists: false } });
+      logger.info(`Found ${cvs.length} CVs without embeddings`);
+
+      for (const cv of cvs) {
+        try {
+          const searchableText = cv.generateSearchableText();
+          const embedding = await openaiService.getEmbeddings(searchableText);
+          
+          cv.embedding = embedding;
+          await cv.save();
+          
+          logger.info('Updated embedding for CV', { 
+            id: cv._id,
+            filename: cv.fileName
+          });
+        } catch (error) {
+          logger.error('Failed to update embedding for CV', {
+            id: cv._id,
+            error: error.message
+          });
+        }
+      }
+      
+      logger.info('Completed embedding update');
+    } catch (error) {
+      logger.error('Failed to update embeddings', { error: error.message });
       throw error;
     }
   }
