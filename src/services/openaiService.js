@@ -536,12 +536,66 @@ Remember to:
   async searchCVs(query, limit = 10) {
     const cvs = await CVData.find({
       $or: [
+        // Personal Info
         { 'personalInfo.name': { $regex: query, $options: 'i' } },
         { 'personalInfo.email': { $regex: query, $options: 'i' } },
-        { 'skills.skills': { $regex: query, $options: 'i' } }
+        { 'personalInfo.phone': { $regex: query, $options: 'i' } },
+        { 'personalInfo.location': { $regex: query, $options: 'i' } },
+        { 'personalInfo.linkedin': { $regex: query, $options: 'i' } },
+        { 'personalInfo.website': { $regex: query, $options: 'i' } },
+        { 'personalInfo.summary': { $regex: query, $options: 'i' } },
+        
+        // Education
+        { 'education.institution': { $regex: query, $options: 'i' } },
+        { 'education.degree': { $regex: query, $options: 'i' } },
+        { 'education.field': { $regex: query, $options: 'i' } },
+        { 'education.description': { $regex: query, $options: 'i' } },
+        
+        // Experience
+        { 'experience.company': { $regex: query, $options: 'i' } },
+        { 'experience.position': { $regex: query, $options: 'i' } },
+        { 'experience.location': { $regex: query, $options: 'i' } },
+        { 'experience.description': { $regex: query, $options: 'i' } },
+        { 'experience.achievements': { $regex: query, $options: 'i' } },
+        
+        // Skills
+        { 'skills.category': { $regex: query, $options: 'i' } },
+        { 'skills.skills': { $regex: query, $options: 'i' } },
+        
+        // Certifications
+        { 'certifications.name': { $regex: query, $options: 'i' } },
+        { 'certifications.issuer': { $regex: query, $options: 'i' } },
+        
+        // Languages
+        { 'languages.language': { $regex: query, $options: 'i' } },
+        { 'languages.proficiency': { $regex: query, $options: 'i' } },
+        
+        // Projects
+        { 'projects.name': { $regex: query, $options: 'i' } },
+        { 'projects.description': { $regex: query, $options: 'i' } },
+        { 'projects.technologies': { $regex: query, $options: 'i' } },
+        
+        // Publications
+        { 'publications.title': { $regex: query, $options: 'i' } },
+        { 'publications.publisher': { $regex: query, $options: 'i' } },
+        { 'publications.authors': { $regex: query, $options: 'i' } },
+        
+        // Awards
+        { 'awards.title': { $regex: query, $options: 'i' } },
+        { 'awards.issuer': { $regex: query, $options: 'i' } },
+        { 'awards.description': { $regex: query, $options: 'i' } },
+        
+        // References
+        { 'references.name': { $regex: query, $options: 'i' } },
+        { 'references.position': { $regex: query, $options: 'i' } },
+        { 'references.company': { $regex: query, $options: 'i' } },
+        { 'references.relationship': { $regex: query, $options: 'i' } },
+        
+        // File name
+        { fileName: { $regex: query, $options: 'i' } }
       ]
     })
-    .select('-rawText')
+    .select('-rawText') // Exclude the raw text to reduce response size
     .limit(limit);
 
     return cvs;
