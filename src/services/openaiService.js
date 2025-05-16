@@ -4,6 +4,7 @@ const logger = require('../utils/logger');
 const { cvDataSchema } = require('../schemas/cvDataSchema');
 const CVData = require('../models/cvData.model');
 const Match = require('../models/match.model');
+const mongoose = require('mongoose');
 
 class OpenAIService {
   constructor() {
@@ -311,13 +312,13 @@ class OpenAIService {
         },
         {
           name: 'getCVDetails',
-          description: 'Get detailed information about a specific CV',
+          description: 'Get detailed information about a specific CV by ID or name',
           parameters: {
             type: 'object',
             properties: {
               cvId: {
                 type: 'string',
-                description: 'ID of the CV to retrieve'
+                description: 'ID or name of the CV to retrieve'
               }
             },
             required: ['cvId']
@@ -672,15 +673,41 @@ Remember to:
 
   /**
    * Get detailed information about a CV
-   * @param {string} cvId - CV ID
+   * @param {string} identifier - CV ID or name
    * @returns {Promise<Object>} - CV details
    */
-  async getCVDetails(cvId) {
-    const cv = await CVData.findById(cvId).select('-rawText');
-    if (!cv) {
-      throw new Error('CV not found');
+  async getCVDetails(identifier) {
+    try {
+      let cv;
+      
+      // Check if identifier is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(identifier)) {
+        cv = await CVData.findById(identifier).select('-rawText');
+      } else {
+        // Search by name
+        cv = await CVData.findOne({
+          'personalInfo.name': { $regex: new RegExp(identifier, 'i') }
+        }).select('-rawText');
+      }
+
+      if (!cv) {
+        throw new Error(`CV not found for identifier: ${identifier}`);
+      }
+
+      logger.info('CV details retrieved successfully', {
+        identifier,
+        cvId: cv._id,
+        name: cv.personalInfo.name
+      });
+
+      return cv;
+    } catch (error) {
+      logger.error('Failed to get CV details', {
+        identifier,
+        error: error.message
+      });
+      throw error;
     }
-    return cv;
   }
 
   /**
