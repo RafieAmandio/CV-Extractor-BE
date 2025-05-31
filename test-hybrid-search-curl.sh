@@ -89,4 +89,29 @@ echo ""
 echo "💡 Tips:"
 echo "- Make sure your server is running: npm start"
 echo "- Check that you have CV data in your database"
-echo "- Install jq for better JSON formatting: brew install jq (macOS) or apt-get install jq (Ubuntu)" 
+echo "- Install jq for better JSON formatting: brew install jq (macOS) or apt-get install jq (Ubuntu)"
+
+echo ""
+echo "=================================================="
+echo ""
+echo "🗑️  Testing DELETE Chat History Endpoint"
+echo ""
+echo "⚠️  WARNING: This will delete ALL chat history!"
+read -p "Do you want to test the delete endpoint? (y/N): " -n 1 -r
+echo ""
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  echo ""
+  echo "📋 Test 7: Delete All Chat History"
+  echo "Endpoint: DELETE /api/cv/chat/history"
+  
+  curl -X DELETE "$API_BASE/api/cv/chat/history" \
+    -H "Content-Type: application/json" | jq '.'
+  
+  echo ""
+  echo "🗑️  Chat history deletion test completed!"
+else
+  echo ""
+  echo "ℹ️  Skipped delete test. To test manually, run:"
+  echo "   curl -X DELETE \"$API_BASE/api/cv/chat/history\""
+fi 

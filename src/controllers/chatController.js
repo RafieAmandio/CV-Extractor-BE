@@ -150,6 +150,41 @@ class ChatController {
       next(error);
     }
   }
+
+  /**
+   * Delete all chat history
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  async deleteChatHistory(req, res, next) {
+    try {
+      // Get count before deletion for logging
+      const totalCount = await ChatHistory.countDocuments();
+
+      // Delete all chat history
+      const deleteResult = await ChatHistory.deleteMany({});
+
+      logger.info('Chat history deleted successfully', {
+        deletedCount: deleteResult.deletedCount,
+        totalCount: totalCount
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'All chat history deleted successfully',
+        data: {
+          deletedCount: deleteResult.deletedCount,
+          totalCount: totalCount
+        }
+      });
+    } catch (error) {
+      logger.error('Error deleting chat history', {
+        error: error.message
+      });
+      next(error);
+    }
+  }
 }
 
 module.exports = new ChatController(); 

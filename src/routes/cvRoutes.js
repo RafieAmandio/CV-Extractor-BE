@@ -146,4 +146,11 @@ router.post('/chat', chatController.chat);
  */
 router.get('/chat/history', chatController.getChatHistory);
 
+/**
+ * @route DELETE /api/cv/chat/history
+ * @desc Delete all chat history
+ * @access Public
+ */
+router.delete('/chat/history', chatController.deleteChatHistory);
+
 module.exports = router;

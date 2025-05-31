@@ -81,5 +81,28 @@ async function testHybridSearch() {
   }
 }
 
+// Function to test delete endpoint separately
+async function testDeleteChatHistory() {
+  console.log('\n🗑️  Testing DELETE Chat History Endpoint');
+  console.log('⚠️  WARNING: This will delete ALL chat history!');
+  
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/cv/chat/history`);
+    
+    if (response.data.success) {
+      console.log('✅ Delete successful');
+      console.log(`🗑️  Deleted ${response.data.data.deletedCount} out of ${response.data.data.totalCount} records`);
+      console.log(`📝 Response: ${response.data.message}`);
+    } else {
+      console.log('❌ Delete failed:', response.data.message);
+    }
+  } catch (error) {
+    console.log('💥 Error:', error.response?.data?.message || error.message);
+  }
+}
+
 // Run the test
-testHybridSearch().catch(console.error); 
+testHybridSearch().catch(console.error);
+
+// Uncomment the line below to test the delete endpoint
+// testDeleteChatHistory().catch(console.error); 

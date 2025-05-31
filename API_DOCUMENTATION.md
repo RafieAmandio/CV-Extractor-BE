@@ -204,3 +204,35 @@ curl "http://localhost:3000/api/cv/chat/history?cvId=123456789&startDate=2024-01
 4. All dates should be in ISO format (YYYY-MM-DD)
 5. The response includes basic CV information when available
 6. The pagination object helps with implementing infinite scroll or pagination UI 
+
+### 3. Delete All Chat History
+Delete all chat history records from the database.
+
+**Endpoint:** `DELETE /api/cv/chat/history`
+
+**Request:** No body required
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "All chat history deleted successfully",
+  "data": {
+    "deletedCount": 25,
+    "totalCount": 25
+  }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X DELETE "http://localhost:3000/api/cv/chat/history"
+```
+
+**Notes:**
+1. This operation cannot be undone - all chat history will be permanently deleted
+2. The response includes both the number of records deleted and the total count before deletion
+3. If there's no chat history to delete, `deletedCount` will be 0
+4. This endpoint is useful for clearing all chat data during development or maintenance
+
+**Error Responses:** 
