@@ -36,7 +36,7 @@ class CVExtractionService {
         ...structuredData,
         rawText: extractedText
       });
-
+      
       // Step 4: Generate embedding
       const searchableText = cvData.generateSearchableText();
       const embedding = await openaiService.getEmbeddings(searchableText);

@@ -2,18 +2,45 @@
 
 ## Chat Endpoints
 
-### 1. Chat with AI
-Interact with the AI assistant to analyze CV data and find job matches.
+### 1. Chat with AI (Enhanced Hybrid Search)
+Interact with the AI assistant to analyze CV data and find job matches using advanced hybrid search that combines traditional database filtering with semantic search.
 
 **Endpoint:** `POST /api/cv/chat`
+
+**Enhanced Search Capabilities:**
+- **Traditional Filtering**: GPA thresholds, company experience, university backgrounds
+- **Semantic Search**: Skills, experience descriptions, role requirements
+- **Hybrid Queries**: Combination of specific criteria with semantic understanding
 
 **Request Body:**
 ```json
 {
-  "message": "Find CVs with Python experience",
+  "message": "Find candidates from UI with GPA above 3.2 who worked at Traveloka",
   "cvId": "optional_cv_id"  // Optional: Focus conversation on specific CV
 }
 ```
+
+**Supported Query Types:**
+
+1. **Academic Filtering:**
+   - `"Find candidates with GPA above 3.5"`
+   - `"Show me graduates from UI or ITB"`
+   - `"Computer science graduates from top universities"`
+
+2. **Company Experience:**
+   - `"Candidates who worked at Traveloka"`
+   - `"Show me people with experience at tech companies"`
+   - `"Find developers who worked at Gojek or Tokopedia"`
+
+3. **Semantic Skills Search:**
+   - `"Python developers with machine learning experience"`
+   - `"Senior frontend engineers with React expertise"`
+   - `"Full-stack developers familiar with microservices"`
+
+4. **Complex Hybrid Queries:**
+   - `"Find UI graduates with GPA above 3.2 who worked at Traveloka"`
+   - `"Senior software engineers from top universities with cloud computing experience"`
+   - `"Machine learning engineers with Python skills from ITB or UI"`
 
 **Response:**
 ```json
@@ -21,27 +48,54 @@ Interact with the AI assistant to analyze CV data and find job matches.
   "success": true,
   "message": "Chat processed successfully",
   "data": {
-    "response": "I found 3 CVs with Python experience...",
-    "functionResult": {
-      "name": "searchCVs",
-      "arguments": {
-        "query": "Python",
-        "limit": 10
-      },
-      "result": [
-        // Array of matching CVs
-      ]
-    }
+    "response": "Found 3 matching CVs using hybrid search approach:\n\n🎯 **John Doe** (Match: 92.5%)\n📧 john.doe@email.com\n💼 Current Role: Software Engineer at Traveloka\n🎓 Education: Bachelor in Computer Science from UI (GPA: 3.7)\n🔧 Key Skills: Python, React, Machine Learning\n⭐ Highlights:\n- 3 years experience at Traveloka\n- Published research in AI\n- Led 5-person development team\n📊 Experience: 4 years in software development",
+    "functionResult": [
+      {
+        "_id": "cv_id_123",
+        "personalInfo": {
+          "name": "John Doe",
+          "email": "john.doe@email.com"
+        },
+        "education": [
+          {
+            "institution": "University of Indonesia",
+            "degree": "Bachelor",
+            "field": "Computer Science",
+            "gpa": "3.7"
+          }
+        ],
+        "experience": [
+          {
+            "company": "Traveloka",
+            "position": "Software Engineer",
+            "startDate": "2020-01",
+            "endDate": "Present"
+          }
+        ],
+        "score": 0.925,
+        "matchType": "hybrid"
+      }
+    ]
   }
 }
 ```
+
+**Query Parsing Examples:**
+
+The system automatically extracts filters from natural language:
+
+| Query | Extracted Filters | Semantic Terms |
+|-------|-------------------|----------------|
+| "Find UI graduates with GPA above 3.2 who worked at Traveloka" | university: "UI", gpa: ≥3.2, company: "Traveloka" | "graduates" |
+| "Python developers with React experience from top universities" | skills: ["Python", "React"] | "developers", "top universities" |
+| "Senior engineers with GPA above 3.5" | gpa: ≥3.5 | "senior engineers" |
 
 **Example Usage:**
 ```bash
 curl -X POST http://localhost:3000/api/cv/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "Find CVs with Python experience",
+    "message": "Find candidates from UI with GPA above 3.2 who worked at Traveloka",
     "cvId": "123456789"
   }'
 ```

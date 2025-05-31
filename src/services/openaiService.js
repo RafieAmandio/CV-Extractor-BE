@@ -293,13 +293,13 @@ class OpenAIService {
       const functions = [
         {
           name: 'searchCVs',
-          description: 'Search for CVs based on specific criteria',
+          description: 'Search for CVs using hybrid semantic and traditional filtering. Supports complex queries with specific criteria like GPA thresholds, company experience, university backgrounds, and semantic skill matching. Examples: "candidates from UI with GPA above 3.2 who worked at Traveloka", "Python developers with React experience", "machine learning engineers from top universities"',
           parameters: {
             type: 'object',
             properties: {
               query: {
                 type: 'string',
-                description: 'Search query to find matching CVs'
+                description: 'Search query that can include specific filters (GPA, company names, universities) and semantic terms (skills, experience). The system will automatically parse and apply both traditional database filters and semantic search.'
               },
               limit: {
                 type: 'number',
@@ -359,9 +359,16 @@ ROLE AND CAPABILITIES:
 
 AVAILABLE FUNCTIONS:
 1. searchCVs(query, limit)
-   - Search for CVs based on specific criteria
-   - Use for finding candidates with particular skills or experience
-   - Example: "Find CVs with Python and React experience"
+   - Advanced hybrid search combining semantic understanding with precise filtering
+   - Supports complex queries with multiple criteria:
+     * Academic filters: "GPA above X", "from [University]"
+     * Experience filters: "worked at [Company]", "experience in [Technology]"
+     * Semantic matching: Skills, roles, and experience descriptions
+   - Examples: 
+     * "Find candidates from UI with GPA above 3.2 who worked at Traveloka"
+     * "Senior Java developers with Spring Boot experience from top universities"
+     * "Machine learning engineers with Python and TensorFlow skills"
+   - Returns ranked results with relevance scores
 
 2. getCVDetails(cvId)
    - Get detailed information about a specific CV
@@ -376,15 +383,21 @@ AVAILABLE FUNCTIONS:
 RESPONSE FORMAT:
 1. For search results:
    - Start with a summary: "Found X matching CVs for your search"
+   - Mention the search strategy used: "Using [hybrid/semantic/filter] search approach"
    - List each CV in this format:
-     [CV] [Candidate Name]
-     [Email] [Email]
-     [Briefcase] Current Role: [Position] at [Company]
-     [Target] Key Skills: [Top 3-5 relevant skills]
-     [Star] Highlights:
+     🎯 **[Candidate Name]** (Match: [Score]%)
+     📧 [Email]
+     💼 Current Role: [Position] at [Company]
+     🎓 Education: [Degree] from [Institution] (GPA: [GPA if available])
+     🔧 Key Skills: [Top 3-5 relevant skills]
+     ⭐ Highlights:
        - [Notable achievement or qualification]
-       - [Another highlight]
-     [Chart] Experience: [Years] years in [field]
+       - [Previous relevant company experience]
+       - [Key technical or academic accomplishment]
+     📊 Experience: [Years] years in [field]
+     
+   - For complex queries, explain why each candidate matches the criteria
+   - If fewer results than expected, suggest alternative search terms
 
 2. For CV details:
    - Use this structured format:
@@ -624,24 +637,141 @@ Remember to:
   }
 
   /**
-   * Search for CVs based on criteria with semantic search
+   * Parse search query to extract specific filters and semantic search terms
+   * @param {string} query - Search query
+   * @returns {Object} - Parsed filters and semantic query
+   */
+  parseSearchQuery(query) {
+    const filters = {};
+    let semanticQuery = query;
+
+    // Extract GPA filter
+    const gpaMatch = query.match(/gpa\s+(above|over|greater than|>)\s+([\d.]+)/i);
+    if (gpaMatch) {
+      filters.gpa = { $gte: parseFloat(gpaMatch[2]) };
+      semanticQuery = semanticQuery.replace(gpaMatch[0], '').trim();
+    }
+
+    // Extract company/work experience filter
+    const companyMatch = query.match(/work(?:ed)?\s+(?:in|at|for)\s+(\w+)/i);
+    if (companyMatch) {
+      filters.company = companyMatch[1];
+      semanticQuery = semanticQuery.replace(companyMatch[0], '').trim();
+    }
+
+    // Extract university filter (UI, etc.)
+    const universityMatch = query.match(/from\s+(\w+(?:\s+\w+)*?)(?:\s+with|\s+and|$)/i);
+    if (universityMatch) {
+      filters.university = universityMatch[1].trim();
+      semanticQuery = semanticQuery.replace(universityMatch[0], '').trim();
+    }
+
+    // Extract specific skills or technologies
+    const skillPatterns = [
+      /(?:experience in|skilled in|knows|familiar with)\s+([^,.]+)/gi,
+      /(\w+(?:\s+\w+)*?)\s+(?:developer|engineer|specialist)/gi
+    ];
+
+    skillPatterns.forEach(pattern => {
+      const matches = query.matchAll(pattern);
+      for (const match of matches) {
+        if (!filters.skills) filters.skills = [];
+        filters.skills.push(match[1].trim());
+        semanticQuery = semanticQuery.replace(match[0], '').trim();
+      }
+    });
+
+    // Clean up semantic query
+    semanticQuery = semanticQuery.replace(/\s+/g, ' ').trim();
+
+    return { filters, semanticQuery };
+  }
+
+  /**
+   * Build MongoDB query from parsed filters
+   * @param {Object} filters - Parsed filters
+   * @returns {Object} - MongoDB query object
+   */
+  buildDatabaseQuery(filters) {
+    const dbQuery = { embedding: { $exists: true } };
+
+    // GPA filter
+    if (filters.gpa) {
+      dbQuery['education.gpa'] = filters.gpa;
+    }
+
+    // Company filter
+    if (filters.company) {
+      dbQuery['experience.company'] = { 
+        $regex: new RegExp(filters.company, 'i') 
+      };
+    }
+
+    // University filter
+    if (filters.university) {
+      dbQuery['education.institution'] = { 
+        $regex: new RegExp(filters.university, 'i') 
+      };
+    }
+
+    // Skills filter (if specific skills are mentioned)
+    if (filters.skills && filters.skills.length > 0) {
+      dbQuery['skills.skills'] = {
+        $in: filters.skills.map(skill => new RegExp(skill, 'i'))
+      };
+    }
+
+    return dbQuery;
+  }
+
+  /**
+   * Search for CVs based on criteria with hybrid semantic + traditional search
    * @param {string} query - Search query
    * @param {number} limit - Maximum number of results
    * @returns {Promise<Array>} - Matching CVs
    */
   async searchCVs(query, limit = 10) {
     try {
-      logger.info('Starting CV search', { query, limit });
+      logger.info('Starting hybrid CV search', { query, limit });
 
-      // Get query embedding
-      const queryEmbedding = await this.getEmbeddings(query);
-      logger.info('Generated query embedding');
+      // Parse the query to extract filters and semantic terms
+      const { filters, semanticQuery } = this.parseSearchQuery(query);
+      logger.info('Parsed search query', { filters, semanticQuery });
 
-      // Get all CVs with embeddings
-      const cvs = await CVData.find({ embedding: { $exists: true } });
+      // Build database query from filters
+      const dbQuery = this.buildDatabaseQuery(filters);
+      logger.info('Built database query', { dbQuery });
 
-      // Calculate similarity scores
-      const scoredCVs = cvs.map(cv => ({
+      // Get filtered CVs from database
+      const filteredCVs = await CVData.find(dbQuery);
+      logger.info('Database filtering completed', { 
+        totalFiltered: filteredCVs.length,
+        originalQuery: query 
+      });
+
+      // If no semantic query remains or no filtered results, return database results
+      if (!semanticQuery || semanticQuery.length < 3 || filteredCVs.length === 0) {
+        const results = filteredCVs
+          .slice(0, limit)
+          .map(cv => ({
+            ...cv.toObject(),
+            score: 1.0, // Perfect match for filter-only queries
+            matchType: 'filter'
+          }));
+
+        logger.info('Filter-only search completed', { 
+          resultsCount: results.length 
+        });
+
+        return results;
+      }
+
+      // Get query embedding for semantic search
+      const queryEmbedding = await this.getEmbeddings(semanticQuery);
+      logger.info('Generated query embedding for semantic search');
+
+      // Calculate similarity scores for filtered CVs
+      const scoredCVs = filteredCVs.map(cv => ({
         cv,
         score: this.calculateCosineSimilarity(queryEmbedding, cv.embedding)
       }));
@@ -652,12 +782,14 @@ Remember to:
         .slice(0, limit)
         .map(({ cv, score }) => ({
           ...cv.toObject(),
-          score
+          score,
+          matchType: 'hybrid'
         }));
 
-      logger.info('Vector search completed', { 
+      logger.info('Hybrid search completed', { 
         resultsCount: results.length,
-        averageScore: results.reduce((sum, r) => sum + r.score, 0) / results.length
+        averageScore: results.reduce((sum, r) => sum + r.score, 0) / results.length,
+        filtersApplied: Object.keys(filters).length
       });
 
       return results;
