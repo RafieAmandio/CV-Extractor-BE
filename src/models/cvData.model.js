@@ -39,6 +39,12 @@ const CVDataSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  extractionMethod: {
+    type: String,
+    enum: ['text', 'vision', 'text_fallback'],
+    default: 'text',
+    index: true
+  },
   personalInfo: {
     name: String,
     email: String,

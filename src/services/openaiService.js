@@ -127,6 +127,11 @@ class OpenAIService {
             Ensure that dates are formatted as strings in YYYY-MM-DD format when possible,
             but preserve the original format if exact dates cannot be determined.
             For ongoing positions or education, use "Present" for the endDate.
+            
+            IMPORTANT: 
+            - If no valid email is found, leave the email field as an empty string ""
+            - Only include valid email addresses that contain @ and a domain
+            - If email appears corrupted or incomplete, leave it empty
 
             `
           },
@@ -141,15 +146,230 @@ class OpenAIService {
       
       const result = JSON.parse(response.choices[0].message.content);
       
+      // Log the extracted data before validation for debugging
+      logger.info('Raw CV data extracted from OpenAI', {
+        personalInfo: result.personalInfo,
+        extractedEmail: result.personalInfo?.email,
+        dataStructure: Object.keys(result)
+      });
+      
       // Validate against schema
       const validatedData = cvDataSchema.parse(result);
       
       logger.info('CV data extraction completed successfully');
       return validatedData;
     } catch (error) {
-      logger.error('OpenAI CV data extraction failed', { 
-        error: error.message 
+      // Enhanced error logging
+      if (error.name === 'ZodError') {
+        logger.error('Schema validation failed for extracted CV data', { 
+          validationErrors: error.errors,
+          extractedData: error.input ? {
+            personalInfo: error.input.personalInfo,
+            email: error.input.personalInfo?.email
+          } : 'Not available'
+        });
+      } else {
+        logger.error('OpenAI CV data extraction failed', { 
+          error: error.message 
+        });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Extract structured CV data from images using OpenAI's Vision API
+   * @param {Array<Buffer>} imageBuffers - Array of image buffers from PDF pages
+   * @returns {Promise<Object>} - Structured CV data
+   */
+  async extractCVDataFromImages(imageBuffers) {
+    try {
+      logger.info('Starting CV data extraction from images with OpenAI Vision', {
+        imageCount: imageBuffers.length
       });
+
+      // Convert image buffers to data URLs
+      const imageDataUrls = imageBuffers.map(buffer => 
+        `data:image/png;base64,${buffer.toString('base64')}`
+      );
+
+      // Create content array with images
+      const content = [
+        {
+          type: "text",
+          text: `You are a CV data extraction expert. Analyze the CV images provided and extract structured information.
+          
+          Please extract data from ALL pages of the CV and return a comprehensive JSON object with the following structure:
+          {
+            "personalInfo": {
+              "name": "",
+              "email": "",
+              "phone": "",
+              "location": "",
+              "linkedin": "",
+              "website": "",
+              "summary": ""
+            },
+            "education": [
+              {
+                "institution": "",
+                "degree": "",
+                "field": "",
+                "startDate": "",
+                "endDate": "",
+                "gpa": "",
+                "description": ""
+              }
+            ],
+            "experience": [
+              {
+                "company": "",
+                "position": "",
+                "startDate": "",
+                "endDate": "",
+                "location": "",
+                "description": "",
+                "achievements": []
+              }
+            ],
+            "skills": [
+              {
+                "category": "",
+                "skills": []
+              }
+            ],
+            "certifications": [
+              {
+                "name": "",
+                "issuer": "",
+                "date": "",
+                "expires": false,
+                "expirationDate": ""
+              }
+            ],
+            "languages": [
+              {
+                "language": "",
+                "proficiency": ""
+              }
+            ],
+            "projects": [
+              {
+                "name": "",
+                "description": "",
+                "startDate": "",
+                "endDate": "",
+                "technologies": [],
+                "url": ""
+              }
+            ],
+            "publications": [
+              {
+                "title": "",
+                "publisher": "",
+                "date": "",
+                "authors": [],
+                "url": ""
+              }
+            ],
+            "awards": [
+              {
+                "title": "",
+                "issuer": "",
+                "date": "",
+                "description": ""
+              }
+            ],
+            "references": [
+              {
+                "name": "",
+                "position": "",
+                "company": "",
+                "contact": "",
+                "relationship": ""
+              }
+            ]
+          }
+          
+          Instructions:
+          1. Read ALL the images carefully - they represent different pages of a CV
+          2. Extract information from ALL pages, not just the first one
+          3. If certain sections are not found, return them as empty arrays or objects
+          4. Ensure dates are formatted as strings in YYYY-MM-DD format when possible
+          5. For ongoing positions or education, use "Present" for the endDate
+          6. Be thorough and extract as much detail as possible
+          7. If text is unclear, make reasonable interpretations
+          8. Organize skills into appropriate categories (e.g., "Technical", "Programming", "Soft Skills")
+          9. Extract all work experience, even internships or part-time positions
+          10. Include all educational qualifications, certifications, and courses
+          
+          IMPORTANT EMAIL HANDLING:
+          - If no valid email is found, leave the email field as an empty string ""
+          - Only include valid email addresses that contain @ and a domain
+          - If email appears corrupted, incomplete, or unclear in the image, leave it empty`
+        }
+      ];
+
+      // Add all images to the content
+      imageDataUrls.forEach((dataUrl, index) => {
+        content.push({
+          type: "image_url",
+          image_url: {
+            url: dataUrl,
+            detail: "high" // Use high detail for better text recognition
+          }
+        });
+      });
+
+      const response = await this.client.chat.completions.create({
+        model: "gpt-4o", // Use GPT-4 Vision model
+        messages: [
+          {
+            role: "user",
+            content: content
+          }
+        ],
+        max_tokens: 4000,
+        temperature: 0.1,
+        response_format: { type: "json_object" }
+      });
+
+      const result = JSON.parse(response.choices[0].message.content);
+      
+      // Log the extracted data before validation for debugging
+      logger.info('Raw CV data extracted from OpenAI Vision', {
+        personalInfo: result.personalInfo,
+        extractedEmail: result.personalInfo?.email,
+        dataStructure: Object.keys(result),
+        imageCount: imageBuffers.length
+      });
+      
+      // Validate against schema
+      const validatedData = cvDataSchema.parse(result);
+      
+      logger.info('CV data extraction from images completed successfully', {
+        imageCount: imageBuffers.length,
+        extractedSections: Object.keys(validatedData).length
+      });
+      
+      return validatedData;
+    } catch (error) {
+      // Enhanced error logging
+      if (error.name === 'ZodError') {
+        logger.error('Schema validation failed for vision-extracted CV data', { 
+          validationErrors: error.errors,
+          extractedData: error.input ? {
+            personalInfo: error.input.personalInfo,
+            email: error.input.personalInfo?.email
+          } : 'Not available',
+          imageCount: imageBuffers?.length || 0
+        });
+      } else {
+        logger.error('OpenAI CV data extraction from images failed', { 
+          error: error.message,
+          imageCount: imageBuffers?.length || 0
+        });
+      }
       throw error;
     }
   }
@@ -855,6 +1075,154 @@ Remember to:
       .populate('jobId');
 
     return matches;
+  }
+
+  /**
+   * Calculate match score between a CV and multiple jobs in parallel (token efficient)
+   * @param {Object} data - Object containing CV and jobs array
+   * @returns {Promise<Array>} - Array of matching scores for each job
+   */
+  async calculateMultipleJobMatches(data) {
+    try {
+      logger.info('Starting multiple job match calculation with OpenAI');
+      
+      const { cv, jobs } = data;
+      
+      const completion = await this.client.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system", 
+            content: `You are an AI trained to analyze matches between job candidates and multiple job descriptions simultaneously.
+                      Your task is to evaluate how well a candidate matches each job posting and provide
+                      a numeric score (0-100) with high precision (2-3 decimal places) along with detailed reasoning.
+                      
+                      Consider the following factors for each job:
+                      1. Skills match (how many required skills the candidate has)
+                      2. Experience relevance (is their experience relevant to the job)
+                      3. Education alignment (does their education match requirements)
+                      4. Overall fit based on job description
+                      
+                      IMPORTANT: 
+                      - Scores should be highly precise with 2-3 decimal places to avoid ties
+                      - Each job should have a distinct score reflecting the specific match quality
+                      - Use the full 0-100 range and be discriminating in your scoring
+                      - Consider subtle differences in skill alignment, experience relevance, etc.`
+          },
+          {
+            role: "user",
+            content: `Evaluate how well this candidate matches each of the provided job descriptions. 
+                      Return a JSON array where each element represents the match for one job.
+                      
+                      For each job, return an object with:
+                      - jobId: the job identifier
+                      - jobTitle: the job title
+                      - score: precise numeric score between 0-100 (use 2-3 decimal places)
+                      - details: object containing analysis for each factor with EXACT keys:
+                        * skills: { score: Number, analysis: String }
+                        * experience: { score: Number, analysis: String }
+                        * education: { score: Number, analysis: String }
+                        * overall: { score: Number, analysis: String }
+                      - recommendations: object with improvement suggestions
+                      
+                      SCORING GUIDELINES:
+                      - Use precise decimal scoring (e.g., 73.47, 81.92, 65.13)
+                      - Differentiate scores meaningfully based on actual fit
+                      - Consider subtle skill overlaps and experience nuances
+                      - Factor in education level, years of experience, leadership potential
+                      - Be consistent but discriminating across different job types
+                      
+                      Example response format:
+                      [
+                        {
+                          "jobId": "senior-software-engineer",
+                          "jobTitle": "Senior Software Engineer",
+                          "score": 73.47,
+                          "details": {
+                            "skills": {
+                              "score": 72.30,
+                              "analysis": "Strong technical foundation with 8/12 required skills including React, Node.js, Python. Missing Docker, Kubernetes, and advanced AWS services."
+                            },
+                            "experience": {
+                              "score": 78.90,
+                              "analysis": "6 years of relevant software development experience with some leadership exposure. Strong problem-solving track record."
+                            },
+                            "education": {
+                              "score": 85.00,
+                              "analysis": "Computer Science degree from reputable institution with solid GPA. Meets educational requirements fully."
+                            },
+                            "overall": {
+                              "score": 73.47,
+                              "analysis": "Good overall match with room for growth in cloud technologies and leadership skills."
+                            }
+                          },
+                          "recommendations": {
+                            "skills": "Develop expertise in containerization (Docker/Kubernetes) and cloud infrastructure",
+                            "experience": "Seek opportunities to lead larger teams and complex projects",
+                            "education": "Consider cloud certifications to strengthen technical profile"
+                          }
+                        }
+                      ]
+                      
+                      CV Information:
+                      ${JSON.stringify(cv, null, 2)}
+                      
+                      Job Descriptions:
+                      ${JSON.stringify(jobs, null, 2)}`
+          }
+        ],
+        temperature: 0.1,
+        response_format: { type: "json_object" }
+      });
+      
+      const responseContent = completion.choices[0].message.content;
+      
+      // Parse JSON response
+      const matchResults = JSON.parse(responseContent);
+      
+      // Ensure we have an array (wrap in array if single object returned)
+      const resultsArray = Array.isArray(matchResults) ? matchResults : 
+                          matchResults.matches ? matchResults.matches : 
+                          [matchResults];
+      
+      // Normalize response structure to ensure consistency
+      const normalizedResults = resultsArray.map(result => {
+        const normalizedDetails = {
+          skills: {
+            score: result.details?.skills?.score || result.details?.skills?.match || 0,
+            analysis: result.details?.skills?.analysis || ''
+          },
+          experience: {
+            score: result.details?.experience?.score || result.details?.experience?.relevance || 0,
+            analysis: result.details?.experience?.analysis || ''
+          },
+          education: {
+            score: result.details?.education?.score || result.details?.education?.alignment || 0,
+            analysis: result.details?.education?.analysis || ''
+          },
+          overall: {
+            score: result.details?.overall?.score || result.details?.overall?.fit || 0,
+            analysis: result.details?.overall?.analysis || ''
+          }
+        };
+        
+        return {
+          ...result,
+          details: normalizedDetails
+        };
+      });
+      
+      logger.info('Multiple job match calculation completed', { 
+        jobCount: jobs.length,
+        resultsCount: normalizedResults.length,
+        averageScore: normalizedResults.reduce((sum, r) => sum + r.score, 0) / normalizedResults.length
+      });
+      
+      return normalizedResults;
+    } catch (error) {
+      logger.error('Multiple job match calculation failed', { error: error.message });
+      throw error;
+    }
   }
 }
 

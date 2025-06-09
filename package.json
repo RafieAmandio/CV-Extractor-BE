@@ -12,14 +12,18 @@
   "license": "ISC",
   "description": "CV Data Extraction API using OpenAI GPT-4o",
   "dependencies": {
+    "axios": "^1.9.0",
     "config": "^3.3.12",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "form-data": "^4.0.2",
     "mongoose": "^8.14.0",
     "multer": "^1.4.5-lts.2",
     "openai": "^4.96.0",
     "pdf-parse": "^1.1.1",
+    "pdf2pic": "^3.2.0",
+    "sharp": "^0.34.2",
     "winston": "^3.17.0",
     "zod": "^3.24.3"
   },

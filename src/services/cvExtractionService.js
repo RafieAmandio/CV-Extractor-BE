@@ -8,10 +8,11 @@ class CVExtractionService {
   /**
    * Process a CV file through the entire pipeline:
    * 1. Extract text from PDF
-   * 2. Extract structured data using OpenAI
-   * 3. Generate embeddings
-   * 4. Save to database
-   * 5. Delete the file to save storage space
+   * 2. If text is insufficient, extract images and use vision
+   * 3. Extract structured data using OpenAI
+   * 4. Generate embeddings
+   * 5. Save to database
+   * 6. Delete the file to save storage space
    * 
    * @param {string} filePath - Path to the CV file
    * @param {string} originalFilename - Original filename
@@ -27,14 +28,59 @@ class CVExtractionService {
       // Step 1: Extract text from PDF
       const extractedText = await pdfService.extractText(filePath);
       
-      // Step 2: Extract structured data using OpenAI
-      const structuredData = await openaiService.extractCVData(extractedText);
+      let structuredData;
+      let extractionMethod = 'text';
+      
+      // Step 2: Check if text extraction was sufficient
+      if (pdfService.isTextSufficient(extractedText)) {
+        logger.info('Text extraction sufficient, using text-based processing', {
+          textLength: extractedText.length
+        });
+        
+        // Use text-based extraction
+        structuredData = await openaiService.extractCVData(extractedText);
+      } else {
+        logger.info('Text extraction insufficient, falling back to vision-based processing', {
+          textLength: extractedText.length
+        });
+        
+        try {
+          // Extract images from PDF
+          const imageBuffers = await pdfService.extractImages(filePath);
+          
+          if (imageBuffers.length === 0) {
+            throw new Error('No images could be extracted from PDF');
+          }
+          
+          logger.info('Images extracted successfully, processing with vision model', {
+            imageCount: imageBuffers.length
+          });
+          
+          // Use vision-based extraction
+          structuredData = await openaiService.extractCVDataFromImages(imageBuffers);
+          extractionMethod = 'vision';
+          
+        } catch (visionError) {
+          logger.error('Vision-based extraction failed, falling back to text', {
+            error: visionError.message
+          });
+          
+          // Fallback to text extraction even if insufficient
+          if (extractedText && extractedText.trim().length > 0) {
+            structuredData = await openaiService.extractCVData(extractedText);
+            extractionMethod = 'text_fallback';
+          } else {
+            throw new Error('Both text and vision extraction failed');
+          }
+        }
+      }
       
       // Step 3: Create CV document
       const cvData = new CVData({
         fileName: originalFilename,
         ...structuredData,
-        rawText: extractedText
+        rawText: extractedText,
+        extractionMethod // Add metadata about extraction method used
       });
       
       // Step 4: Generate embedding
@@ -59,7 +105,9 @@ class CVExtractionService {
       
       logger.info('CV processing completed successfully', { 
         id: cvData._id,
-        filename: originalFilename
+        filename: originalFilename,
+        extractionMethod,
+        textLength: extractedText.length
       });
       
       return cvData;

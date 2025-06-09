@@ -1,10 +1,32 @@
 const { z } = require('zod');
 
+// Helper function to validate and clean email
+const emailSchema = z
+  .string()
+  .transform((val) => {
+    // If empty or just whitespace, return empty string
+    if (!val || val.trim() === '') return '';
+    
+    // Clean the email string
+    const cleaned = val.trim();
+    
+    // Basic email regex check - more permissive than Zod's default
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (emailRegex.test(cleaned)) {
+      return cleaned;
+    }
+    
+    // If it doesn't match, return empty string instead of failing
+    return '';
+  })
+  .optional();
+
 // Define schema for CV data validation
 const cvDataSchema = z.object({
   personalInfo: z.object({
     name: z.string().optional(),
-    email: z.string().email().optional(),
+    email: emailSchema,
     phone: z.string().optional(),
     location: z.string().optional(),
     linkedin: z.string().optional(),
@@ -21,7 +43,7 @@ const cvDataSchema = z.object({
       gpa: z.string().optional(),
       description: z.string().optional()
     })
-  ).optional(),
+  ).default([]),
   experience: z.array(
     z.object({
       company: z.string().optional(),
@@ -30,15 +52,15 @@ const cvDataSchema = z.object({
       endDate: z.string().optional(),
       location: z.string().optional(),
       description: z.string().optional(),
-      achievements: z.array(z.string()).optional()
+      achievements: z.array(z.string()).default([])
     })
-  ).optional(),
+  ).default([]),
   skills: z.array(
     z.object({
       category: z.string().optional(),
-      skills: z.array(z.string()).optional()
+      skills: z.array(z.string()).default([])
     })
-  ).optional(),
+  ).default([]),
   certifications: z.array(
     z.object({
       name: z.string().optional(),
@@ -47,32 +69,32 @@ const cvDataSchema = z.object({
       expires: z.boolean().optional(),
       expirationDate: z.string().optional()
     })
-  ).optional(),
+  ).default([]),
   languages: z.array(
     z.object({
       language: z.string().optional(),
       proficiency: z.string().optional()
     })
-  ).optional(),
+  ).default([]),
   projects: z.array(
     z.object({
       name: z.string().optional(),
       description: z.string().optional(),
       startDate: z.string().optional(),
       endDate: z.string().optional(),
-      technologies: z.array(z.string()).optional(),
+      technologies: z.array(z.string()).default([]),
       url: z.string().optional()
     })
-  ).optional(),
+  ).default([]),
   publications: z.array(
     z.object({
       title: z.string().optional(),
       publisher: z.string().optional(),
       date: z.string().optional(),
-      authors: z.array(z.string()).optional(),
+      authors: z.array(z.string()).default([]),
       url: z.string().optional()
     })
-  ).optional(),
+  ).default([]),
   awards: z.array(
     z.object({
       title: z.string().optional(),
@@ -80,7 +102,7 @@ const cvDataSchema = z.object({
       date: z.string().optional(),
       description: z.string().optional()
     })
-  ).optional(),
+  ).default([]),
   references: z.array(
     z.object({
       name: z.string().optional(),
@@ -89,7 +111,7 @@ const cvDataSchema = z.object({
       contact: z.string().optional(),
       relationship: z.string().optional()
     })
-  ).optional()
+  ).default([])
 });
 
 module.exports = {
