@@ -1,0 +1,36 @@
+{
+  "jobs": [
+    {
+      "id": "customer-service",
+      "title": "Customer Service",
+      "description": "Sebagai Customer Service, Anda akan menjadi garda terdepan dalam memberikan pelayanan terbaik kepada pelanggan. Anda bertanggung jawab menangani pertanyaan, keluhan, dan memastikan kepuasan pelanggan melalui berbagai channel komunikasi dengan sikap profesional, empati, dan solusi yang tepat.",
+      "requiredSkills": {
+        "communication": ["Komunikasi Verbal", "Komunikasi Tertulis", "Active Listening", "Public Speaking"],
+        "customer_skills": ["Customer Handling", "Complaint Resolution", "Empathy", "Patience", "Problem Solving"],
+        "software": ["CRM System", "Live Chat", "Ticketing System", "Microsoft Office", "Email Management"],
+        "languages": ["Bahasa Indonesia", "English", "Multilingual Communication"],
+        "soft_skills": ["Interpersonal Skills", "Stress Management", "Time Management", "Teamwork", "Adaptability"]
+      },
+      "experience": {
+        "minimum": 0,
+        "preferred": 1,
+        "leadership": false,
+        "mentoring": false
+      },
+      "education": {
+        "required": "SMA/SMK atau D3 di bidang Komunikasi, Bisnis, atau bidang terkait",
+        "preferred": "Pengalaman 0-1 tahun di customer service atau hospitality (fresh graduate dipersilakan)"
+      },
+      "responsibilities": [
+        "Menerima dan menangani panggilan telepon, email, live chat, dan pertanyaan pelanggan melalui berbagai channel",
+        "Memberikan informasi produk/layanan yang akurat dan membantu pelanggan dalam proses pembelian atau troubleshooting",
+        "Menangani keluhan pelanggan dengan empati, mencari solusi yang memuaskan, dan melakukan follow-up hingga masalah terselesaikan",
+        "Mencatat dan mendokumentasikan interaksi pelanggan di sistem CRM untuk tracking dan analisis",
+        "Berkoordinasi dengan tim internal (sales, technical support, billing) untuk menyelesaikan issue kompleks",
+        "Memastikan target SLA (response time, resolution time, customer satisfaction) tercapai sesuai standar perusahaan",
+        "Memberikan feedback kepada manajemen mengenai trend keluhan atau saran perbaikan layanan",
+        "Mengikuti training produk dan soft skill secara berkala untuk meningkatkan kualitas pelayanan"
+      ]
+    }
+  ]
+} 
