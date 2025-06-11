@@ -513,7 +513,7 @@ class OpenAIService {
       const functions = [
         {
           name: 'searchCVs',
-          description: 'Search for CVs using hybrid semantic and traditional filtering. Supports complex queries with specific criteria like GPA thresholds, company experience, university backgrounds, and semantic skill matching. Examples: "candidates from UI with GPA above 3.2 who worked at Traveloka", "Python developers with React experience", "machine learning engineers from top universities"',
+          description: 'Search for CVs using hybrid semantic and traditional filtering. Supports complex queries with specific criteria like GPA thresholds, company experience, university backgrounds, and semantic skill matching. Returns maximum 3 most relevant CVs. Examples: "candidates from UI with GPA above 3.2 who worked at Traveloka", "Python developers with React experience", "machine learning engineers from top universities"',
           parameters: {
             type: 'object',
             properties: {
@@ -523,8 +523,8 @@ class OpenAIService {
               },
               limit: {
                 type: 'number',
-                description: 'Maximum number of results to return',
-                default: 10
+                description: 'Maximum number of results to return (automatically capped at 3)',
+                default: 3
               }
             },
             required: ['query']
@@ -604,69 +604,162 @@ RESPONSE FORMAT:
 1. For search results:
    - Start with a summary: "Found X matching CVs for your search"
    - Mention the search strategy used: "Using [hybrid/semantic/filter] search approach"
-   - List each CV in this format:
-     🎯 **[Candidate Name]** (Match: [Score]%)
-     📧 [Email]
-     💼 Current Role: [Position] at [Company]
-     🎓 Education: [Degree] from [Institution] (GPA: [GPA if available])
-     🔧 Key Skills: [Top 3-5 relevant skills]
-     ⭐ Highlights:
-       - [Notable achievement or qualification]
-       - [Previous relevant company experience]
-       - [Key technical or academic accomplishment]
-     📊 Experience: [Years] years in [field]
-     
+   - Add proper spacing between sections
+   - List each CV in this enhanced format:
+   
+   ═══════════════════════════════════════════════════════════
+   🎯 **[Candidate Name]** | Match Score: [Score]%
+   ═══════════════════════════════════════════════════════════
+   
+   📋 **CONTACT INFORMATION**
+   📧 Email: [Email]
+   📱 Phone: [Phone if available]
+   📍 Location: [Location]
+   🔗 LinkedIn: [LinkedIn if available]
+   
+   💼 **PROFESSIONAL PROFILE**
+   Current Role: [Position] at [Company]
+   Experience Level: [Years] years in [field]
+   
+   🎓 **EDUCATION**
+   Degree: [Degree] in [Field]
+   Institution: [Institution]
+   GPA: [GPA if available]
+   
+   🔧 **KEY SKILLS**
+   • [Skill 1]
+   • [Skill 2] 
+   • [Skill 3]
+   • [Skill 4]
+   • [Skill 5]
+   
+   ⭐ **HIGHLIGHTS & ACHIEVEMENTS**
+   • [Notable achievement or qualification]
+   • [Previous relevant company experience]
+   • [Key technical or academic accomplishment]
+   • [Additional relevant experience]
+   
+   📈 **MATCH ANALYSIS**
+   Relevance Score: [Score]%
+   Match Type: [hybrid/semantic/filter]
+   Key Strengths: [Brief explanation of why they match]
+   
+   ═══════════════════════════════════════════════════════════
+   
+   - Add a blank line between each CV result
    - For complex queries, explain why each candidate matches the criteria
    - If fewer results than expected, suggest alternative search terms
+   - Always end with a summary of results and next steps
 
 2. For CV details:
-   - Use this structured format:
-     [Person] PROFILE
-     Name: [Full Name]
-     Email: [Email]
-     Location: [Location]
-     LinkedIn: [LinkedIn URL]
-     
-     [Memo] SUMMARY
-     [2-3 sentence professional summary]
-     
-     [Briefcase] EXPERIENCE
-     [Company Name] | [Position]
-     [Duration]
-     - [Key achievement]
-     - [Another achievement]
-     
-     [Graduation Cap] EDUCATION
-     [Degree] in [Field]
-     [Institution] | [Duration]
-     [Notable achievements or GPA if available]
-     
-     [Tools] SKILLS
-     Technical: [List of technical skills]
-     Soft Skills: [List of soft skills]
-     
-     [Trophy] CERTIFICATIONS
-     - [Certification 1]
-     - [Certification 2]
-     
-     [Chart Up] STRENGTHS
-     - [Strength 1]
-     - [Strength 2]
-     - [Strength 3]
+   - Use this beautifully structured format:
+   
+   ╔══════════════════════════════════════════════════════════╗
+   ║                    👤 CANDIDATE PROFILE                    ║
+   ╚══════════════════════════════════════════════════════════╝
+   
+   **Name:** [Full Name]
+   **Email:** [Email]
+   **Phone:** [Phone]
+   **Location:** [Location]
+   **LinkedIn:** [LinkedIn URL]
+   **Website:** [Website if available]
+   
+   ────────────────────────────────────────────────────────────
+   📝 **PROFESSIONAL SUMMARY**
+   ────────────────────────────────────────────────────────────
+   [2-3 sentence professional summary with proper line breaks]
+   
+   ────────────────────────────────────────────────────────────
+   💼 **WORK EXPERIENCE**
+   ────────────────────────────────────────────────────────────
+   **[Company Name]** | [Position]
+   📅 Duration: [Start Date] - [End Date]
+   📍 Location: [Location if available]
+   
+   Key Achievements:
+   • [Achievement 1]
+   • [Achievement 2]
+   • [Achievement 3]
+   
+   [Repeat for additional experience]
+   
+   ────────────────────────────────────────────────────────────
+   🎓 **EDUCATION**
+   ────────────────────────────────────────────────────────────
+   **[Degree] in [Field]**
+   🏛️ Institution: [Institution]
+   📅 Duration: [Start] - [End]
+   📊 GPA: [GPA if available]
+   🏆 Notable Achievements: [If any]
+   
+   ────────────────────────────────────────────────────────────
+   🛠️ **TECHNICAL SKILLS**
+   ────────────────────────────────────────────────────────────
+   Programming Languages: [List]
+   Frameworks & Tools: [List]
+   Software & Platforms: [List]
+   
+   ────────────────────────────────────────────────────────────
+   🤝 **SOFT SKILLS**
+   ────────────────────────────────────────────────────────────
+   • [Skill 1]  • [Skill 2]  • [Skill 3]
+   • [Skill 4]  • [Skill 5]  • [Skill 6]
+   
+   ────────────────────────────────────────────────────────────
+   🏆 **CERTIFICATIONS & AWARDS**
+   ────────────────────────────────────────────────────────────
+   🎖️ [Certification 1] - [Issuer] ([Date])
+   🎖️ [Certification 2] - [Issuer] ([Date])
+   🏅 [Award 1] - [Issuer] ([Date])
+   
+   ────────────────────────────────────────────────────────────
+   📊 **KEY STRENGTHS**
+   ────────────────────────────────────────────────────────────
+   ✅ [Strength 1 with brief explanation]
+   ✅ [Strength 2 with brief explanation]
+   ✅ [Strength 3 with brief explanation]
 
 3. For job matches:
-   - Use this format:
-     [Target] MATCH ANALYSIS
-     Overall Match: [Score]%
-     
-     [Chart] BREAKDOWN
-     - Skills Match: [Score]% - [Brief explanation]
-     - Experience Match: [Score]% - [Brief explanation]
-     - Education Match: [Score]% - [Brief explanation]
-     
-     [Light Bulb] RECOMMENDATIONS
-     - [Specific recommendation 1]
-     - [Specific recommendation 2]
+   - Use this enhanced format:
+   
+   ╔══════════════════════════════════════════════════════════╗
+   ║                   🎯 JOB MATCH ANALYSIS                   ║
+   ╚══════════════════════════════════════════════════════════╝
+   
+   **Overall Match Score:** [Score]% 🎯
+   **Recommendation:** [Strong Match/Good Match/Potential Match]
+   
+   ────────────────────────────────────────────────────────────
+   📊 **DETAILED BREAKDOWN**
+   ────────────────────────────────────────────────────────────
+   
+   🔧 **Skills Match:** [Score]%
+      Analysis: [Brief explanation with specific examples]
+   
+   💼 **Experience Match:** [Score]%
+      Analysis: [Brief explanation of relevant experience]
+   
+   🎓 **Education Match:** [Score]%
+      Analysis: [Brief explanation of educational alignment]
+   
+   🎯 **Overall Fit:** [Score]%
+      Analysis: [Comprehensive assessment]
+   
+   ────────────────────────────────────────────────────────────
+   💡 **IMPROVEMENT RECOMMENDATIONS**
+   ────────────────────────────────────────────────────────────
+   🎯 Skills Development:
+      • [Specific recommendation 1]
+      • [Specific recommendation 2]
+   
+   📈 Experience Enhancement:
+      • [Specific recommendation 1]
+      • [Specific recommendation 2]
+   
+   🎓 Additional Qualifications:
+      • [Specific recommendation 1]
+      • [Specific recommendation 2]
 
 BEST PRACTICES:
 - Always explain your reasoning
@@ -947,12 +1040,15 @@ Remember to:
   /**
    * Search for CVs based on criteria with hybrid semantic + traditional search
    * @param {string} query - Search query
-   * @param {number} limit - Maximum number of results
+   * @param {number} limit - Maximum number of results (capped at 3)
    * @returns {Promise<Array>} - Matching CVs
    */
-  async searchCVs(query, limit = 10) {
+  async searchCVs(query, limit = 3) {
     try {
-      logger.info('Starting hybrid CV search', { query, limit });
+      // Cap the limit to maximum 3 CVs
+      const maxLimit = Math.min(limit, 3);
+      
+      logger.info('Starting hybrid CV search', { query, limit: maxLimit });
 
       // Parse the query to extract filters and semantic terms
       const { filters, semanticQuery } = this.parseSearchQuery(query);
@@ -972,7 +1068,7 @@ Remember to:
       // If no semantic query remains or no filtered results, return database results
       if (!semanticQuery || semanticQuery.length < 3 || filteredCVs.length === 0) {
         const results = filteredCVs
-          .slice(0, limit)
+          .slice(0, maxLimit)
           .map(cv => ({
             ...cv.toObject(),
             score: 1.0, // Perfect match for filter-only queries
@@ -996,10 +1092,10 @@ Remember to:
         score: this.calculateCosineSimilarity(queryEmbedding, cv.embedding)
       }));
 
-      // Sort by similarity score and get top results
+      // Sort by similarity score and get top results (maximum 3)
       const results = scoredCVs
         .sort((a, b) => b.score - a.score)
-        .slice(0, limit)
+        .slice(0, maxLimit)
         .map(({ cv, score }) => ({
           ...cv.toObject(),
           score,
